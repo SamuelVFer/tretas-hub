@@ -1,5 +1,7 @@
 import type { Session } from "@supabase/supabase-js";
 
+import type { Tables } from "@/integrations/supabase/types";
+
 import type { Categoria, Dor, DorPublica, Perfil } from "./database.types";
 import { supabase } from "./supabase";
 
@@ -202,5 +204,42 @@ export async function listarUsuariosAdmin(): Promise<Perfil[]> {
 
 export async function atualizarUsuarioAdmin(id: string, updates: Pick<Perfil, "role" | "banido">) {
   const { error } = await supabase.from("perfis").update(updates).eq("id", id);
+  if (error) throw error;
+}
+
+export type RegistroAuditoria = Tables<"registros_auditoria">;
+
+export async function registrarLogin(usuarioId: string) {
+  const { error } = await supabase
+    .from("registros_auditoria")
+    .insert({ tabela: "auth", acao: "login", ator_id: usuarioId });
+
+  if (error) console.warn("Falha ao registrar login na auditoria", error.message);
+}
+
+export async function listarAuditoria(): Promise<RegistroAuditoria[]> {
+  const { data, error } = await supabase
+    .from("registros_auditoria")
+    .select("*")
+    .order("criado_em", { ascending: false })
+    .limit(200);
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listarDoresAdmin(
+  status: "todas" | "pendente" | "aprovada" | "rejeitada" = "todas",
+): Promise<(Dor & { categorias: { nome: string } | null })[]> {
+  let query = supabase.from("dores").select("*, categorias(nome)");
+  if (status !== "todas") query = query.eq("status", status);
+
+  const { data, error } = await query.order("criado_em", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function excluirDor(id: string) {
+  const { error } = await supabase.from("dores").delete().eq("id", id);
   if (error) throw error;
 }
