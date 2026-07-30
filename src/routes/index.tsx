@@ -800,7 +800,9 @@ function MinhasDoresPanel({ dores, isLoading }: { dores: Dor[]; isLoading: boole
 }
 
 function AdminPanel({ categorias }: { categorias: { id: string; nome: string }[] }) {
-  const [tab, setTab] = useState<"curadoria" | "usuarios" | "categorias">("curadoria");
+  const [tab, setTab] = useState<"curadoria" | "dores" | "usuarios" | "categorias" | "auditoria">(
+    "curadoria",
+  );
   const pendentesQuery = useQuery({
     queryKey: ["admin-pendentes"],
     queryFn: listarPendentesAdmin,
@@ -818,17 +820,25 @@ function AdminPanel({ categorias }: { categorias: { id: string; nome: string }[]
             <Shield className="size-5" />
             Painel admin
           </h2>
-          <p className="text-sm text-[var(--ink-soft)]">Curadoria, categorias e usuários.</p>
+          <p className="text-sm text-[var(--ink-soft)]">
+            Curadoria, dores publicadas, categorias, usuários e auditoria.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <NavButton active={tab === "curadoria"} onClick={() => setTab("curadoria")}>
             Curadoria
+          </NavButton>
+          <NavButton active={tab === "dores"} onClick={() => setTab("dores")}>
+            Todas as dores
           </NavButton>
           <NavButton active={tab === "usuarios"} onClick={() => setTab("usuarios")}>
             Usuários
           </NavButton>
           <NavButton active={tab === "categorias"} onClick={() => setTab("categorias")}>
             Categorias
+          </NavButton>
+          <NavButton active={tab === "auditoria"} onClick={() => setTab("auditoria")}>
+            Auditoria
           </NavButton>
         </div>
       </div>
@@ -842,6 +852,8 @@ function AdminPanel({ categorias }: { categorias: { id: string; nome: string }[]
         />
       ) : null}
 
+      {tab === "dores" ? <DoresAdmin /> : null}
+
       {tab === "usuarios" ? (
         <UsuariosAdmin
           usuarios={usuariosQuery.data ?? []}
@@ -851,7 +863,161 @@ function AdminPanel({ categorias }: { categorias: { id: string; nome: string }[]
       ) : null}
 
       {tab === "categorias" ? <CategoriasAdmin categorias={categorias} /> : null}
+
+      {tab === "auditoria" ? <AuditoriaAdmin /> : null}
     </div>
+  );
+}
+
+function DoresAdmin() {
+  const queryClient = useQueryClient();
+  const [filtro, setFiltro] = useState<"todas" | "pendente" | "aprovada" | "rejeitada">("aprovada");
+  const doresQuery = useQuery({
+    queryKey: ["admin-dores", filtro],
+    queryFn: () => listarDoresAdmin(filtro),
+  });
+
+  const excluirMutation = useMutation({
+    mutationFn: excluirDor,
+    onSuccess: async () => {
+      toast.success("Dor excluída");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-dores"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-pendentes"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-auditoria"] }),
+        queryClient.invalidateQueries({ queryKey: ["feed"] }),
+      ]);
+    },
+    onError: (error) => toast.error(readableError(error)),
+  });
+
+  return (
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <Select
+          ariaLabel="Filtrar status"
+          value={filtro}
+          onChange={(value) => setFiltro(value as typeof filtro)}
+          options={[
+            { value: "aprovada", label: "Aprovadas" },
+            { value: "pendente", label: "Pendentes" },
+            { value: "rejeitada", label: "Rejeitadas" },
+            { value: "todas", label: "Todas" },
+          ]}
+        />
+      </div>
+
+      {doresQuery.error ? <ErrorBox error={doresQuery.error} /> : null}
+      {doresQuery.isLoading ? <LoadingRows /> : null}
+      {!doresQuery.isLoading && (doresQuery.data ?? []).length === 0 ? (
+        <EmptyState title="Nada por aqui" text="Nenhuma dor com esse status." />
+      ) : null}
+
+      {(doresQuery.data ?? []).map((dor) => (
+        <Card key={dor.id} className="signal-card bg-[var(--surface-card)]">
+          <CardContent className="grid gap-3 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge status={dor.status} />
+                <Badge className="chip-lilac rounded-full border-0 font-data">
+                  {dor.categorias?.nome ?? "Sem categoria"}
+                </Badge>
+                <span className="font-data text-xs text-[var(--ink-soft)]">
+                  {formatDate(dor.criado_em)}
+                </span>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                disabled={excluirMutation.isPending}
+                onClick={() => {
+                  if (window.confirm(`Excluir definitivamente "${dor.titulo}"?`)) {
+                    excluirMutation.mutate(dor.id);
+                  }
+                }}
+              >
+                <Trash2 className="size-4" />
+                Excluir
+              </Button>
+            </div>
+            <p className="font-medium text-[var(--ink)]">{dor.titulo}</p>
+            <p className="text-sm leading-6 text-[var(--ink-soft)]">{dor.descricao}</p>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+const ACAO_LABEL: Record<string, string> = {
+  insert: "Criação",
+  update: "Edição",
+  delete: "Exclusão",
+  login: "Login",
+};
+
+function AuditoriaAdmin() {
+  const auditoriaQuery = useQuery({
+    queryKey: ["admin-auditoria"],
+    queryFn: listarAuditoria,
+  });
+
+  if (auditoriaQuery.isLoading) return <LoadingRows />;
+  if (auditoriaQuery.error) return <ErrorBox error={auditoriaQuery.error} />;
+
+  const registros = auditoriaQuery.data ?? [];
+  if (registros.length === 0) {
+    return <EmptyState title="Sem registros" text="Nenhum evento auditado até agora." />;
+  }
+
+  return (
+    <Card className="signal-card bg-[var(--surface-card)]">
+      <CardHeader className="p-5 pb-0">
+        <CardTitle className="flex items-center gap-2 text-lg tracking-normal text-[var(--ink)]">
+          <ScrollText className="size-4" />
+          Log de auditoria
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-5">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px] text-left text-sm">
+            <thead className="font-data text-xs uppercase text-[var(--ink-soft)]">
+              <tr>
+                <th className="py-2 pr-3">Data e hora</th>
+                <th className="py-2 pr-3">Ação</th>
+                <th className="py-2 pr-3">Tabela</th>
+                <th className="py-2 pr-3">Registro</th>
+                <th className="py-2">Autor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {registros.map((registro) => (
+                <tr key={registro.id} className="border-t border-[rgb(54_46_69_/_8%)]">
+                  <td className="py-2 pr-3 font-data text-xs whitespace-nowrap text-[var(--ink-soft)]">
+                    {new Date(registro.criado_em).toLocaleString("pt-BR")}
+                  </td>
+                  <td className="py-2 pr-3">
+                    <Badge className="chip-butter rounded-full border-0 font-data">
+                      {ACAO_LABEL[registro.acao] ?? registro.acao}
+                    </Badge>
+                  </td>
+                  <td className="py-2 pr-3 font-data text-xs text-[var(--ink)]">
+                    {registro.tabela}
+                  </td>
+                  <td className="py-2 pr-3 font-data text-xs text-[var(--ink-soft)]">
+                    {registro.registro_id?.slice(0, 8) ?? "—"}
+                  </td>
+                  <td className="py-2 text-xs text-[var(--ink-soft)]">
+                    {registro.ator_email ?? registro.ator_id?.slice(0, 8) ?? "sistema"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
