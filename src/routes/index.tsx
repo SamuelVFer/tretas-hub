@@ -303,6 +303,10 @@ function AuthBox({
     onSuccess: async () => {
       toast.success(mode === "cadastro" ? "Conta criada" : "Login realizado");
       setPassword("");
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session?.user.id) await registrarLogin(session.user.id);
       await queryClient.invalidateQueries({ queryKey: ["auth-state"] });
     },
     onError: (error) => toast.error(readableError(error)),
