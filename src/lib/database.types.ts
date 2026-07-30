@@ -18,6 +18,6 @@ export type DorPublica = {
   aprovado_em: string | null;
   categoria_id: string;
   categoria_nome: string;
-  autor_id: string;
+  autor_id: string | null;
   interesse_count: number;
 };

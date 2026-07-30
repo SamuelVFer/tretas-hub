@@ -13,7 +13,6 @@ import {
   Shield,
   SlidersHorizontal,
   Trash2,
-  UserPlus,
   X,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -49,7 +48,6 @@ import {
   removerInteresse,
   signIn,
   signOut,
-  signUp,
 } from "@/lib/tretas-api";
 import { cn } from "@/lib/utils";
 
@@ -58,7 +56,6 @@ export const Route = createFileRoute("/")({
 });
 
 type View = "feed" | "enviar" | "minhas" | "admin";
-type AuthMode = "login" | "cadastro";
 
 const MotionCard = motion(Card);
 
@@ -111,7 +108,7 @@ function Index() {
 
   useEffect(() => {
     if (view === "admin" && !isAdmin) setView("feed");
-    if ((view === "enviar" || view === "minhas") && !session) setView("feed");
+    if (view === "minhas" && !session) setView("feed");
   }, [isAdmin, session, view]);
 
   const categoriasQuery = useQuery({
@@ -172,11 +169,7 @@ function Index() {
             <NavButton active={view === "feed"} onClick={() => setView("feed")}>
               Feed público
             </NavButton>
-            <NavButton
-              active={view === "enviar"}
-              disabled={!session}
-              onClick={() => setView("enviar")}
-            >
+            <NavButton active={view === "enviar"} onClick={() => setView("enviar")}>
               Enviar dor
             </NavButton>
             <NavButton
@@ -211,9 +204,7 @@ function Index() {
           />
         ) : null}
 
-        {view === "enviar" && session ? (
-          <EnviarDorPanel autorId={session.user.id} categorias={categorias} />
-        ) : null}
+        {view === "enviar" ? <EnviarDorPanel categorias={categorias} /> : null}
 
         {view === "minhas" && session ? (
           <MinhasDoresPanel
@@ -289,20 +280,17 @@ function AuthBox({
   perfil: Perfil | null;
   onSignedOut: () => void;
 }) {
-  const [mode, setMode] = useState<AuthMode>("login");
-  const [nome, setNome] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const queryClient = useQueryClient();
 
   const authMutation = useMutation({
-    mutationFn: async () => {
-      if (mode === "cadastro") await signUp(nome, email, password);
-      else await signIn(email, password);
-    },
+    mutationFn: () => signIn(email, password),
     onSuccess: async () => {
-      toast.success(mode === "cadastro" ? "Conta criada" : "Login realizado");
+      toast.success("Login realizado");
       setPassword("");
+      setIsOpen(false);
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -340,7 +328,7 @@ function AuthBox({
             {perfil.nome || perfil.email}
           </div>
           <p className="font-data text-xs text-[var(--ink-soft)]">
-            {perfil.role === "admin" ? "Admin" : "Usuário"}
+            {perfil.role === "admin" ? "Admin" : "Sessão ativa"}
           </p>
         </div>
         <Button
@@ -358,63 +346,54 @@ function AuthBox({
   }
 
   return (
-    <Card className="signal-card w-full max-w-md bg-[var(--surface-card)] md:w-[430px]">
-      <CardContent className="p-4">
-        <div className="mb-3 flex gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant={mode === "login" ? "default" : "outline"}
-            onClick={() => setMode("login")}
-          >
-            Entrar
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={mode === "cadastro" ? "default" : "outline"}
-            onClick={() => setMode("cadastro")}
-          >
-            <UserPlus className="size-4" />
-            Criar conta
-          </Button>
-        </div>
-        <form
-          className="grid gap-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            authMutation.mutate();
-          }}
-        >
-          {mode === "cadastro" ? (
-            <Field label="Nome">
-              <Input value={nome} onChange={(event) => setNome(event.target.value)} required />
-            </Field>
-          ) : null}
-          <Field label="Email">
-            <Input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
-          </Field>
-          <Field label="Senha">
-            <Input
-              type="password"
-              minLength={6}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
-          </Field>
-          <Button type="submit" disabled={authMutation.isPending || !isSupabaseConfigured}>
-            {authMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-            {mode === "cadastro" ? "Cadastrar" : "Entrar"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+    <div className="relative flex justify-end">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => setIsOpen((value) => !value)}
+        className="rounded-full px-3 text-[var(--ink-soft)]"
+        title="Acesso admin"
+        aria-label="Acesso admin"
+      >
+        <Shield className="size-4" />
+      </Button>
+      {isOpen ? (
+        <Card className="signal-card absolute right-0 top-11 z-20 w-[min(22rem,calc(100vw-2rem))] bg-[var(--surface-card)]">
+          <CardContent className="p-4">
+            <form
+              className="grid gap-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                authMutation.mutate();
+              }}
+            >
+              <Field label="Email admin">
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
+                />
+              </Field>
+              <Field label="Senha">
+                <Input
+                  type="password"
+                  minLength={6}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                />
+              </Field>
+              <Button type="submit" disabled={authMutation.isPending || !isSupabaseConfigured}>
+                {authMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+                Entrar como admin
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      ) : null}
+    </div>
   );
 }
 
@@ -661,13 +640,7 @@ function InterestParticles({ burstKey }: { burstKey: number }) {
   );
 }
 
-function EnviarDorPanel({
-  autorId,
-  categorias,
-}: {
-  autorId: string;
-  categorias: { id: string; nome: string }[];
-}) {
+function EnviarDorPanel({ categorias }: { categorias: { id: string; nome: string }[] }) {
   const queryClient = useQueryClient();
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -685,7 +658,6 @@ function EnviarDorPanel({
         descricao,
         categoriaId,
         empresaContexto,
-        autorId,
       }),
     onSuccess: async () => {
       toast.success("Dor enviada para curadoria");

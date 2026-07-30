@@ -15,7 +15,6 @@ export type NovaDorInput = {
   descricao: string;
   categoriaId: string;
   empresaContexto?: string;
-  autorId: string;
 };
 
 export type EditarDorInput = {
@@ -109,7 +108,6 @@ export async function criarDor(input: NovaDorInput) {
     descricao: input.descricao.trim(),
     categoria_id: input.categoriaId,
     empresa_contexto: input.empresaContexto?.trim() || null,
-    autor_id: input.autorId,
     status: "pendente",
   });
 
