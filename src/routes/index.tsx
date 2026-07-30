@@ -3,8 +3,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
+  BarChart3,
   Check,
   CircleUserRound,
+  Flame,
   Eye,
   Heart,
   Loader2,
@@ -13,6 +15,7 @@ import {
   ScrollText,
   Shield,
   SlidersHorizontal,
+  Sparkles,
   Trash2,
   X,
 } from "lucide-react";
@@ -129,6 +132,12 @@ function Index() {
     enabled: isSupabaseConfigured,
   });
 
+  const statsQuery = useQuery({
+    queryKey: ["feed-stats"],
+    queryFn: () => listarFeed("todas", "recentes"),
+    enabled: isSupabaseConfigured,
+  });
+
   const interessesQuery = useQuery({
     queryKey: ["meus-interesses", session?.user.id],
     queryFn: () => listarMeusInteresses(session?.user.id),
@@ -142,23 +151,37 @@ function Index() {
   });
 
   const categorias = categoriasQuery.data ?? [];
+  const stats = useMemo(() => {
+    const dores = statsQuery.data ?? [];
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - 7);
+
+    return {
+      aprovadas: dores.length,
+      semana: dores.filter((dor) => new Date(dor.criado_em) >= weekStart).length,
+      interesses: dores.reduce((total, dor) => total + dor.interesse_count, 0),
+    };
+  }, [statsQuery.data]);
 
   return (
     <main className="signal-shell min-h-screen bg-background text-[var(--ink)]">
-      <section className="signal-content border-b border-[rgb(54_46_69_/_8%)] bg-[rgb(255_255_255_/_72%)] backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="font-display text-5xl tracking-normal text-[var(--ink)]">
+      <section className="signal-content border-b border-[var(--border-hairline)] bg-[rgb(255_252_247_/_78%)] backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+            <header className="min-w-0">
+              <div className="flex items-end gap-3">
+                <h1 className="font-display text-6xl leading-none tracking-normal text-[var(--ink)] sm:text-7xl">
                   Tretas HUB
                 </h1>
-                <Badge className="chip-coral rounded-full border-0 font-data">MVP</Badge>
+                <span
+                  className="mb-2 size-3 rounded-full bg-[var(--accent-orange)] shadow-[0_0_24px_rgb(255_151_54_/_54%)]"
+                  aria-hidden="true"
+                />
               </div>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--ink-soft)]">
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--ink-soft)] sm:text-base">
                 Dores reais, curadas e públicas para encontrar oportunidades com sinal de interesse.
               </p>
-            </div>
+            </header>
             <AuthBox
               perfil={perfil}
               loading={authQuery.isLoading}
@@ -171,22 +194,44 @@ function Index() {
 
           {!isSupabaseConfigured ? <SetupBanner /> : null}
 
-          <nav className="relative flex w-fit max-w-full flex-wrap gap-2 rounded-full bg-white/70 p-1 shadow-[var(--shadow-soft)] backdrop-blur-xl">
-            <NavButton active={view === "feed"} onClick={() => setView("feed")}>
+          <StatsStrip
+            isLoading={statsQuery.isLoading}
+            stats={[
+              {
+                icon: BarChart3,
+                label: "Dores validadas",
+                value: stats.aprovadas,
+              },
+              {
+                icon: Sparkles,
+                label: "Aprovadas na semana",
+                value: stats.semana,
+              },
+              {
+                icon: Heart,
+                label: "Sinais de interesse",
+                value: stats.interesses,
+              },
+            ]}
+          />
+
+          <nav className="relative flex max-w-full flex-wrap items-center gap-6 border-t border-[var(--border-hairline)] pt-4">
+            <NavButton active={view === "feed"} groupId="main" onClick={() => setView("feed")}>
               Feed público
             </NavButton>
-            <NavButton active={view === "enviar"} onClick={() => setView("enviar")}>
+            <NavButton active={view === "enviar"} groupId="main" onClick={() => setView("enviar")}>
               Enviar dor
             </NavButton>
             <NavButton
               active={view === "minhas"}
               disabled={!session}
+              groupId="main"
               onClick={() => setView("minhas")}
             >
               Minhas dores
             </NavButton>
             {isAdmin ? (
-              <NavButton active={view === "admin"} onClick={() => setView("admin")}>
+              <NavButton active={view === "admin"} groupId="main" onClick={() => setView("admin")}>
                 Painel admin
               </NavButton>
             ) : null}
@@ -227,7 +272,7 @@ function Index() {
 
 function SetupBanner() {
   return (
-    <div className="signal-card flex items-start gap-3 border border-[rgb(255_138_115_/_28%)] bg-[rgb(255_138_115_/_13%)] p-4 text-sm">
+    <div className="signal-card flex items-start gap-3 border border-[rgb(255_151_54_/_28%)] bg-[var(--accent-orange-tint)] p-4 text-sm">
       <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
       <div>
         <p className="font-medium text-foreground">
@@ -246,11 +291,13 @@ function NavButton({
   active,
   children,
   disabled,
+  groupId = "tabs",
   onClick,
 }: {
   active: boolean;
   children: string;
   disabled?: boolean;
+  groupId?: string;
   onClick: () => void;
 }) {
   return (
@@ -261,20 +308,80 @@ function NavButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "relative overflow-hidden rounded-full border-0 bg-transparent px-4 font-medium text-[var(--ink-soft)] shadow-none hover:bg-transparent hover:text-[var(--ink)]",
-        active && "text-[var(--accent-coral-dark)]",
+        "relative h-auto overflow-visible rounded-none border-0 bg-transparent px-0 py-1 font-bold text-[var(--ink-soft)] shadow-none hover:bg-transparent hover:text-[var(--ink)]",
+        active && "text-[var(--ink)]",
       )}
     >
       {active ? (
         <motion.span
-          layoutId="active-nav-pill"
-          className="absolute inset-0 rounded-full bg-[rgb(255_138_115_/_22%)]"
+          layoutId={`active-nav-underline-${groupId}`}
+          className="absolute -bottom-2 left-0 h-0.5 w-full rounded-full bg-[var(--accent-orange)]"
           transition={{ type: "spring", stiffness: 420, damping: 32 }}
         />
       ) : null}
       <span className="relative z-10">{children}</span>
     </Button>
   );
+}
+
+function StatsStrip({
+  isLoading,
+  stats,
+}: {
+  isLoading: boolean;
+  stats: { icon: typeof BarChart3; label: string; value: number }[];
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
+      {stats.map((stat) => {
+        const Icon = stat.icon;
+        return (
+          <div
+            key={stat.label}
+            className="signal-card flex items-center gap-3 border bg-white/82 px-4 py-3 backdrop-blur-xl"
+          >
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--accent-orange-tint)] text-[var(--accent-orange-deep)]">
+              <Icon className="size-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="font-data text-2xl font-bold leading-none text-[var(--accent-orange-deep)]">
+                {isLoading ? "..." : <CountUp value={stat.value} />}
+              </p>
+              <p className="mt-1 truncate text-xs font-bold uppercase text-[var(--ink-faint)]">
+                {stat.label}
+              </p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function CountUp({ value }: { value: number }) {
+  const prefersReducedMotion = useReducedMotion();
+  const [display, setDisplay] = useState(prefersReducedMotion ? value : 0);
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      setDisplay(value);
+      return;
+    }
+
+    let frame = 0;
+    const frames = 28;
+    setDisplay(0);
+    const timer = window.setInterval(() => {
+      frame += 1;
+      const progress = 1 - Math.pow(1 - frame / frames, 3);
+      setDisplay(Math.round(value * progress));
+      if (frame >= frames) window.clearInterval(timer);
+    }, 24);
+
+    return () => window.clearInterval(timer);
+  }, [prefersReducedMotion, value]);
+
+  return display.toLocaleString("pt-BR");
 }
 
 function AuthBox({
@@ -427,22 +534,14 @@ function FeedPanel({
   onOrdenacaoChange: (value: "recentes" | "interesse") => void;
 }) {
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="font-display text-3xl tracking-normal text-[var(--ink)]">Feed público</h2>
-          <p className="text-sm text-[var(--ink-soft)]">Dores aprovadas pela curadoria.</p>
+          <h2 className="font-display text-4xl tracking-normal text-[var(--ink)]">Feed público</h2>
+          <p className="mt-1 text-sm text-[var(--ink-soft)]">Dores aprovadas pela curadoria.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Select
-            ariaLabel="Filtrar categoria"
-            value={categoriaFiltro}
-            onChange={onCategoriaChange}
-            options={[
-              { value: "todas", label: "Todas categorias" },
-              ...categorias.map((categoria) => ({ value: categoria.id, label: categoria.nome })),
-            ]}
-          />
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-data text-xs uppercase text-[var(--ink-faint)]">Ordenar</span>
           <Select
             ariaLabel="Ordenar feed"
             value={ordenacao}
@@ -453,6 +552,22 @@ function FeedPanel({
             ]}
           />
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <CategoryChip
+          active={categoriaFiltro === "todas"}
+          label="Todas categorias"
+          onClick={() => onCategoriaChange("todas")}
+        />
+        {categorias.map((categoria) => (
+          <CategoryChip
+            key={categoria.id}
+            active={categoriaFiltro === categoria.id}
+            label={categoria.nome}
+            onClick={() => onCategoriaChange(categoria.id)}
+          />
+        ))}
       </div>
 
       {error ? <ErrorBox error={error} /> : null}
@@ -481,6 +596,31 @@ function FeedPanel({
         ))}
       </motion.div>
     </div>
+  );
+}
+
+function CategoryChip({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-full border px-3 py-1.5 text-xs font-bold text-[var(--ink-soft)] shadow-sm transition hover:border-[rgb(255_151_54_/_36%)] hover:text-[var(--accent-orange-deep)]",
+        active
+          ? "border-[rgb(255_151_54_/_38%)] bg-[var(--accent-orange-tint)] text-[var(--accent-orange-deep)]"
+          : "border-[var(--border-hairline)] bg-white/76",
+      )}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -529,18 +669,23 @@ function DorCard({
             }
       }
       className={cn(
-        "signal-card flex min-h-[260px] flex-col bg-[var(--surface-card)]",
+        "signal-card flex min-h-[292px] flex-col border bg-[var(--surface-card)]",
         isHot && "signal-halo",
       )}
     >
-      <CardHeader className="space-y-3 p-5 pb-3">
+      <CardHeader className="space-y-3 p-5 pb-2">
         <div className="flex items-start justify-between gap-3">
-          <Badge className="chip-lilac rounded-full border-0 font-data">{dor.categoria_nome}</Badge>
-          <span className="whitespace-nowrap font-data text-xs text-[var(--ink-soft)]">
-            {formatDate(dor.criado_em)}
+          <span className="font-data text-[11px] font-bold uppercase tracking-normal text-[var(--ink-faint)]">
+            {dor.categoria_nome}
           </span>
+          {isHot ? (
+            <Badge className="chip-orange rounded-full border-0 font-data">
+              <Flame className="size-3" />
+              em alta
+            </Badge>
+          ) : null}
         </div>
-        <CardTitle className="text-lg leading-6 tracking-normal text-[var(--ink)]">
+        <CardTitle className="text-xl leading-7 tracking-normal text-[var(--ink)]">
           {dor.titulo}
         </CardTitle>
       </CardHeader>
@@ -551,11 +696,14 @@ function DorCard({
             Contexto: {dor.empresa_contexto}
           </p>
         ) : null}
-        <div className="mt-auto flex items-center justify-between gap-3">
+        <div className="mt-auto flex items-center justify-between gap-3 border-t border-[var(--border-hairline)] pt-4">
+          <span className="whitespace-nowrap font-data text-xs text-[var(--ink-faint)]">
+            {formatDate(dor.criado_em)}
+          </span>
           <div className="flex items-center gap-2 text-sm font-medium">
             <motion.span
               key={`heart-${burstKey}`}
-              className="relative grid size-8 place-items-center rounded-full bg-[rgb(255_138_115_/_18%)] text-[var(--accent-coral-dark)]"
+              className="relative grid size-8 place-items-center rounded-full bg-[var(--accent-orange-tint)] text-[var(--accent-orange-deep)]"
               animate={
                 burstKey > 0 && !prefersReducedMotion ? { scale: [1, 1.3, 1] } : { scale: 1 }
               }
@@ -576,35 +724,37 @@ function DorCard({
               </AnimatePresence>
               <InterestParticles burstKey={burstKey} />
             </motion.span>
-            <motion.span
-              key={dor.interesse_count}
-              className="font-data text-[var(--ink)]"
-              initial={
-                prefersReducedMotion ? false : { scale: 1.14, color: "var(--accent-coral-dark)" }
-              }
-              animate={{ scale: 1, color: "var(--ink)" }}
-              transition={{ duration: 0.35 }}
+            <div className="flex items-center gap-2">
+              <motion.span
+                key={dor.interesse_count}
+                className="font-data text-[var(--ink)]"
+                initial={
+                  prefersReducedMotion ? false : { scale: 1.14, color: "var(--accent-orange-deep)" }
+                }
+                animate={{ scale: 1, color: "var(--ink)" }}
+                transition={{ duration: 0.35 }}
+              >
+                {dor.interesse_count}
+              </motion.span>
+              <span className="hidden text-[var(--ink-soft)] sm:inline">interessados</span>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant={interessado ? "secondary" : "outline"}
+              disabled={!sessionUserId || interestMutation.isPending}
+              onClick={() => interestMutation.mutate()}
+              title={!sessionUserId ? "Entre para marcar interesse" : undefined}
+              className={cn("rounded-full", interessado && "border border-[rgb(255_151_54_/_38%)]")}
             >
-              {dor.interesse_count}
-            </motion.span>
-            <span className="text-[var(--ink-soft)]">interessados</span>
+              {interestMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Heart className={cn("size-4", interessado ? "fill-current" : "")} />
+              )}
+              {interessado ? "Marcado" : "Tenho interesse"}
+            </Button>
           </div>
-          <Button
-            type="button"
-            size="sm"
-            variant={interessado ? "secondary" : "default"}
-            disabled={!sessionUserId || interestMutation.isPending}
-            onClick={() => interestMutation.mutate()}
-            title={!sessionUserId ? "Entre para marcar interesse" : undefined}
-            className="rounded-full"
-          >
-            {interestMutation.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Heart className="size-4" />
-            )}
-            {interessado ? "Marcado" : "Tenho interesse"}
-          </Button>
         </div>
       </CardContent>
     </MotionCard>
@@ -616,11 +766,11 @@ function InterestParticles({ burstKey }: { burstKey: number }) {
   if (burstKey === 0 || prefersReducedMotion) return null;
 
   const particles = [
-    { x: -26, y: -28, rotate: -18 },
-    { x: 24, y: -34, rotate: 14 },
-    { x: -34, y: 6, rotate: -28 },
-    { x: 32, y: 4, rotate: 24 },
-    { x: -8, y: -42, rotate: 8 },
+    { x: -28, y: -24, rotate: 210 },
+    { x: 22, y: -34, rotate: 300 },
+    { x: -36, y: 5, rotate: 170 },
+    { x: 32, y: 4, rotate: 18 },
+    { x: -5, y: -42, rotate: 270 },
   ];
 
   return (
@@ -628,19 +778,17 @@ function InterestParticles({ burstKey }: { burstKey: number }) {
       {particles.map((particle, index) => (
         <motion.span
           key={`${burstKey}-${index}`}
-          className="heart-particle"
-          initial={{ x: "-50%", y: "-50%", scale: 0.4, opacity: 0 }}
+          className="sun-ray"
+          initial={{ x: "-50%", y: "-50%", scaleX: 0.2, opacity: 0, rotate: particle.rotate }}
           animate={{
             x: `calc(-50% + ${particle.x}px)`,
             y: `calc(-50% + ${particle.y}px)`,
-            scale: [0.4, 1, 0.15],
-            opacity: [0, 0.9, 0],
+            scaleX: [0.2, 1, 0.15],
+            opacity: [0, 0.95, 0],
             rotate: particle.rotate,
           }}
           transition={{ duration: 0.7, delay: index * 0.035, ease: [0.16, 1, 0.3, 1] }}
-        >
-          ♥
-        </motion.span>
+        />
       ))}
     </AnimatePresence>
   );
@@ -766,7 +914,7 @@ function MinhasDoresPanel({ dores, isLoading }: { dores: Dor[]; isLoading: boole
             </div>
             <p className="text-sm leading-6 text-[var(--ink-soft)]">{dor.descricao}</p>
             {dor.motivo_rejeicao ? (
-              <p className="rounded-2xl bg-[rgb(255_138_115_/_14%)] p-3 text-sm text-[var(--accent-coral-dark)]">
+              <p className="rounded-lg bg-[var(--status-rejeitada-tint)] p-3 text-sm text-[var(--status-rejeitada)]">
                 Motivo da rejeição: {dor.motivo_rejeicao}
               </p>
             ) : null}
@@ -803,19 +951,31 @@ function AdminPanel({ categorias }: { categorias: { id: string; nome: string }[]
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <NavButton active={tab === "curadoria"} onClick={() => setTab("curadoria")}>
+          <NavButton
+            active={tab === "curadoria"}
+            groupId="admin"
+            onClick={() => setTab("curadoria")}
+          >
             Curadoria
           </NavButton>
-          <NavButton active={tab === "dores"} onClick={() => setTab("dores")}>
+          <NavButton active={tab === "dores"} groupId="admin" onClick={() => setTab("dores")}>
             Todas as dores
           </NavButton>
-          <NavButton active={tab === "usuarios"} onClick={() => setTab("usuarios")}>
+          <NavButton active={tab === "usuarios"} groupId="admin" onClick={() => setTab("usuarios")}>
             Usuários
           </NavButton>
-          <NavButton active={tab === "categorias"} onClick={() => setTab("categorias")}>
+          <NavButton
+            active={tab === "categorias"}
+            groupId="admin"
+            onClick={() => setTab("categorias")}
+          >
             Categorias
           </NavButton>
-          <NavButton active={tab === "auditoria"} onClick={() => setTab("auditoria")}>
+          <NavButton
+            active={tab === "auditoria"}
+            groupId="admin"
+            onClick={() => setTab("auditoria")}
+          >
             Auditoria
           </NavButton>
         </div>
@@ -964,7 +1124,7 @@ function DorAdminCard({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={dor.status} />
-            <Badge className="chip-lilac rounded-full border-0 font-data">
+            <Badge className="chip-soft rounded-full border-0 font-data">
               {dor.categorias?.nome ?? "Sem categoria"}
             </Badge>
             <span className="font-data text-xs text-[var(--ink-soft)]">
@@ -1086,12 +1246,12 @@ function AuditoriaAdmin() {
             </thead>
             <tbody>
               {registros.map((registro) => (
-                <tr key={registro.id} className="border-t border-[rgb(54_46_69_/_8%)]">
+                <tr key={registro.id} className="border-t border-[var(--border-hairline)]">
                   <td className="py-2 pr-3 font-data text-xs whitespace-nowrap text-[var(--ink-soft)]">
                     {new Date(registro.criado_em).toLocaleString("pt-BR")}
                   </td>
                   <td className="py-2 pr-3">
-                    <Badge className="chip-butter rounded-full border-0 font-data">
+                    <Badge className="chip-orange rounded-full border-0 font-data">
                       {ACAO_LABEL[registro.acao] ?? registro.acao}
                     </Badge>
                   </td>
@@ -1201,7 +1361,7 @@ function CuradoriaCard({
     <Card className="signal-card bg-[var(--surface-card)]">
       <CardContent className="grid gap-4 p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <Badge className="chip-lilac rounded-full border-0 font-data">
+          <Badge className="chip-soft rounded-full border-0 font-data">
             {dor.categorias?.nome ?? "Sem categoria"}
           </Badge>
           <span className="font-data text-xs text-[var(--ink-soft)]">
@@ -1312,13 +1472,13 @@ function UsuariosAdmin({
               <Badge
                 className={cn(
                   "rounded-full border-0 font-data",
-                  usuario.role === "admin" ? "chip-lilac" : "chip-mint",
+                  usuario.role === "admin" ? "chip-orange" : "chip-success",
                 )}
               >
                 {usuario.role}
               </Badge>
               {usuario.banido ? (
-                <Badge className="chip-coral rounded-full border-0 font-data">banido</Badge>
+                <Badge className="chip-danger rounded-full border-0 font-data">banido</Badge>
               ) : null}
               <Button
                 type="button"
@@ -1488,7 +1648,7 @@ function CategoriaAdminCard({
     <Card className="signal-card bg-[var(--surface-card)]">
       <CardContent className="grid gap-4 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Badge className="chip-lilac rounded-full border-0 font-data">{categoria.nome}</Badge>
+          <Badge className="chip-soft rounded-full border-0 font-data">{categoria.nome}</Badge>
           <span className="font-data text-xs text-[var(--ink-soft)]">
             {categoria.dores_count} dores
           </span>
@@ -1587,7 +1747,7 @@ function Select({
   return (
     <select
       aria-label={ariaLabel}
-      className="h-9 rounded-full border border-[rgb(54_46_69_/_10%)] bg-white/80 px-3 font-data text-sm text-[var(--ink)] shadow-[var(--shadow-soft)] outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      className="h-9 rounded-full border border-[var(--border-hairline)] bg-white/82 px-3 font-data text-sm text-[var(--ink)] shadow-[var(--shadow-soft)] outline-none transition focus-visible:border-[rgb(255_151_54_/_44%)] focus-visible:ring-1 focus-visible:ring-ring"
       value={value}
       onChange={(event) => onChange(event.target.value)}
     >
@@ -1602,13 +1762,13 @@ function Select({
 
 function StatusBadge({ status }: { status: Dor["status"] }) {
   if (status === "aprovada") {
-    return <Badge className="chip-mint rounded-full border-0 font-data">Aprovada</Badge>;
+    return <Badge className="chip-success rounded-full border-0 font-data">Aprovada</Badge>;
   }
   if (status === "rejeitada") {
-    return <Badge className="chip-coral rounded-full border-0 font-data">Rejeitada</Badge>;
+    return <Badge className="chip-danger rounded-full border-0 font-data">Rejeitada</Badge>;
   }
   return (
-    <Badge className="chip-butter pending-breathe rounded-full border-0 font-data">Pendente</Badge>
+    <Badge className="chip-pending pending-breathe rounded-full border-0 font-data">Pendente</Badge>
   );
 }
 
@@ -1618,7 +1778,7 @@ function LoadingRows() {
       {[0, 1, 2].map((item) => (
         <div
           key={item}
-          className="h-24 animate-pulse rounded-[20px] border border-[rgb(54_46_69_/_8%)] bg-white/55"
+          className="h-24 animate-pulse rounded-lg border border-[var(--border-hairline)] bg-white/55"
         />
       ))}
     </div>
@@ -1627,7 +1787,7 @@ function LoadingRows() {
 
 function EmptyState({ text, title }: { text: string; title: string }) {
   return (
-    <div className="signal-card border border-dashed border-[rgb(54_46_69_/_14%)] bg-white/62 p-8 text-center">
+    <div className="signal-card border border-dashed border-[var(--border-hairline)] bg-white/62 p-8 text-center">
       <Eye className="mx-auto mb-3 size-5 text-[var(--ink-soft)]" />
       <p className="font-medium text-[var(--ink)]">{title}</p>
       <p className="mt-1 text-sm text-[var(--ink-soft)]">{text}</p>
@@ -1637,7 +1797,7 @@ function EmptyState({ text, title }: { text: string; title: string }) {
 
 function ErrorBox({ error }: { error: unknown }) {
   return (
-    <div className="signal-card border border-[rgb(255_138_115_/_28%)] bg-[rgb(255_138_115_/_14%)] p-4 text-sm text-[var(--accent-coral-dark)]">
+    <div className="signal-card border border-[rgb(255_151_54_/_28%)] bg-[var(--accent-orange-tint)] p-4 text-sm text-[var(--accent-orange-deep)]">
       {readableError(error)}
     </div>
   );
