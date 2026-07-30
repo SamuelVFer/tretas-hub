@@ -9,8 +9,10 @@ import {
   Heart,
   Loader2,
   LogOut,
+  ScrollText,
   Shield,
   SlidersHorizontal,
+  Trash2,
   UserPlus,
   X,
 } from "lucide-react";
