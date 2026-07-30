@@ -421,7 +421,7 @@ function AuthBox({
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-[var(--ink-soft)]">
+      <div className="signal-card flex items-center gap-2 border bg-white/72 px-3 py-2 text-sm text-[var(--ink-soft)]">
         <Loader2 className="size-4 animate-spin" />
         Carregando sessão
       </div>
@@ -430,11 +430,11 @@ function AuthBox({
 
   if (perfil) {
     return (
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="signal-card flex flex-wrap items-center gap-3 border bg-white/76 px-3 py-2 backdrop-blur-xl">
         <div className="text-right text-sm">
           <div className="flex items-center justify-end gap-2 font-medium">
             {perfil.role === "admin" ? (
-              <Shield className="size-4" />
+              <Shield className="size-4 text-[var(--accent-orange-deep)]" />
             ) : (
               <CircleUserRound className="size-4" />
             )}
@@ -465,14 +465,20 @@ function AuthBox({
         variant="ghost"
         size="sm"
         onClick={() => setIsOpen((value) => !value)}
-        className="rounded-full px-3 text-[var(--ink-soft)]"
+        className="rounded-full border border-[var(--border-hairline)] bg-white/68 px-3 text-[var(--ink-soft)] shadow-[var(--shadow-soft)] hover:text-[var(--accent-orange-deep)]"
         title="Acesso admin"
         aria-label="Acesso admin"
       >
         <Shield className="size-4" />
       </Button>
       {isOpen ? (
-        <Card className="signal-card absolute right-0 top-11 z-20 w-[min(22rem,calc(100vw-2rem))] bg-[var(--surface-card)]">
+        <Card className="signal-card absolute right-0 top-11 z-20 w-[min(22rem,calc(100vw-2rem))] border bg-[var(--surface-card)]">
+          <CardHeader className="p-4 pb-0">
+            <CardTitle className="flex items-center gap-2 text-base tracking-normal text-[var(--ink)]">
+              <Shield className="size-4 text-[var(--accent-orange-deep)]" />
+              Acesso admin
+            </CardTitle>
+          </CardHeader>
           <CardContent className="p-4">
             <form
               className="grid gap-3"
@@ -825,71 +831,76 @@ function EnviarDorPanel({ categorias }: { categorias: { id: string; nome: string
   });
 
   return (
-    <Card className="signal-card mx-auto max-w-3xl bg-[var(--surface-card)]">
-      <CardHeader>
-        <CardTitle className="font-display text-3xl tracking-normal text-[var(--ink)]">
-          Enviar uma dor
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form
-          className="grid gap-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            submitMutation.mutate();
-          }}
-        >
-          <Field label="Título da dor">
-            <Input
-              minLength={6}
-              maxLength={140}
-              value={titulo}
-              onChange={(event) => setTitulo(event.target.value)}
-              required
-            />
-          </Field>
-          <Field label="Descrição detalhada">
-            <Textarea
-              minLength={20}
-              maxLength={4000}
-              rows={7}
-              value={descricao}
-              onChange={(event) => setDescricao(event.target.value)}
-              required
-            />
-          </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Categoria">
-              <Select
-                ariaLabel="Categoria"
-                value={categoriaId}
-                onChange={setCategoriaId}
-                options={categorias.map((categoria) => ({
-                  value: categoria.id,
-                  label: categoria.nome,
-                }))}
-              />
-            </Field>
-            <Field label="Empresa ou contexto">
+    <div className="mx-auto grid max-w-3xl gap-4">
+      <div>
+        <h2 className="font-display text-4xl tracking-normal text-[var(--ink)]">Enviar uma dor</h2>
+        <p className="mt-1 text-sm text-[var(--ink-soft)]">
+          A curadoria revisa o envio antes de aparecer no feed público.
+        </p>
+      </div>
+      <Card className="signal-card border bg-[var(--surface-card)]">
+        <CardContent className="p-5 sm:p-6">
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              submitMutation.mutate();
+            }}
+          >
+            <Field label="Título da dor">
               <Input
+                minLength={6}
                 maxLength={140}
-                value={empresaContexto}
-                onChange={(event) => setEmpresaContexto(event.target.value)}
-                placeholder="Opcional"
+                value={titulo}
+                onChange={(event) => setTitulo(event.target.value)}
+                required
               />
             </Field>
-          </div>
-          <Button type="submit" disabled={submitMutation.isPending || !categoriaId}>
-            {submitMutation.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Check className="size-4" />
-            )}
-            Enviar para curadoria
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+            <Field label="Descrição detalhada">
+              <Textarea
+                minLength={20}
+                maxLength={4000}
+                rows={7}
+                value={descricao}
+                onChange={(event) => setDescricao(event.target.value)}
+                required
+              />
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Categoria">
+                <Select
+                  ariaLabel="Categoria"
+                  value={categoriaId}
+                  onChange={setCategoriaId}
+                  options={categorias.map((categoria) => ({
+                    value: categoria.id,
+                    label: categoria.nome,
+                  }))}
+                />
+              </Field>
+              <Field label="Empresa ou contexto">
+                <Input
+                  maxLength={140}
+                  value={empresaContexto}
+                  onChange={(event) => setEmpresaContexto(event.target.value)}
+                  placeholder="Opcional"
+                />
+              </Field>
+            </div>
+            <div className="flex justify-end border-t border-[var(--border-hairline)] pt-4">
+              <Button type="submit" disabled={submitMutation.isPending || !categoriaId}>
+                {submitMutation.isPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Check className="size-4" />
+                )}
+                Enviar para curadoria
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -906,7 +917,7 @@ function MinhasDoresPanel({ dores, isLoading }: { dores: Dor[]; isLoading: boole
         <EmptyState title="Nada enviado ainda" text="Envie a primeira dor para curadoria." />
       ) : null}
       {dores.map((dor) => (
-        <Card key={dor.id} className="signal-card bg-[var(--surface-card)]">
+        <Card key={dor.id} className="signal-card border bg-[var(--surface-card)]">
           <CardContent className="grid gap-3 p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-semibold tracking-normal text-[var(--ink)]">{dor.titulo}</h3>
@@ -939,18 +950,18 @@ function AdminPanel({ categorias }: { categorias: { id: string; nome: string }[]
   });
 
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="font-display flex items-center gap-2 text-3xl tracking-normal text-[var(--ink)]">
-            <Shield className="size-5" />
+          <h2 className="font-display flex items-center gap-2 text-4xl tracking-normal text-[var(--ink)]">
+            <Shield className="size-5 text-[var(--accent-orange-deep)]" />
             Painel admin
           </h2>
           <p className="text-sm text-[var(--ink-soft)]">
             Curadoria, dores publicadas, categorias, usuários e auditoria.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-5 border-t border-[var(--border-hairline)] pt-3 md:border-t-0 md:pt-0">
           <NavButton
             active={tab === "curadoria"}
             groupId="admin"
@@ -1032,27 +1043,31 @@ function DoresAdmin({ categorias }: { categorias: { id: string; nome: string }[]
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Select
-          ariaLabel="Filtrar status"
-          value={filtro}
-          onChange={(value) => setFiltro(value as typeof filtro)}
-          options={[
-            { value: "aprovada", label: "Aprovadas" },
-            { value: "pendente", label: "Pendentes" },
-            { value: "rejeitada", label: "Rejeitadas" },
-            { value: "todas", label: "Todas" },
-          ]}
-        />
-        <Select
-          ariaLabel="Filtrar categoria"
-          value={categoriaFiltro}
-          onChange={setCategoriaFiltro}
-          options={[
-            { value: "todas", label: "Todas categorias" },
-            ...categorias.map((categoria) => ({ value: categoria.id, label: categoria.nome })),
-          ]}
-        />
+      <div className="signal-card flex flex-wrap items-end gap-3 border bg-white/76 p-3">
+        <Field label="Status">
+          <Select
+            ariaLabel="Filtrar status"
+            value={filtro}
+            onChange={(value) => setFiltro(value as typeof filtro)}
+            options={[
+              { value: "aprovada", label: "Aprovadas" },
+              { value: "pendente", label: "Pendentes" },
+              { value: "rejeitada", label: "Rejeitadas" },
+              { value: "todas", label: "Todas" },
+            ]}
+          />
+        </Field>
+        <Field label="Categoria">
+          <Select
+            ariaLabel="Filtrar categoria"
+            value={categoriaFiltro}
+            onChange={setCategoriaFiltro}
+            options={[
+              { value: "todas", label: "Todas categorias" },
+              ...categorias.map((categoria) => ({ value: categoria.id, label: categoria.nome })),
+            ]}
+          />
+        </Field>
       </div>
 
       {doresQuery.error ? <ErrorBox error={doresQuery.error} /> : null}
@@ -1119,7 +1134,7 @@ function DorAdminCard({
   const busy = saveMutation.isPending || deleting;
 
   return (
-    <Card className="signal-card bg-[var(--surface-card)]">
+    <Card className="signal-card border bg-[var(--surface-card)]">
       <CardContent className="grid gap-4 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -1190,14 +1205,16 @@ function DorAdminCard({
             <Input value={motivo} onChange={(event) => setMotivo(event.target.value)} />
           </Field>
         ) : null}
-        <Button type="button" disabled={busy} onClick={() => saveMutation.mutate()}>
-          {saveMutation.isPending ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <SlidersHorizontal className="size-4" />
-          )}
-          Salvar ajustes
-        </Button>
+        <div className="flex justify-end border-t border-[var(--border-hairline)] pt-4">
+          <Button type="button" disabled={busy} onClick={() => saveMutation.mutate()}>
+            {saveMutation.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <SlidersHorizontal className="size-4" />
+            )}
+            Salvar ajustes
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
@@ -1225,7 +1242,7 @@ function AuditoriaAdmin() {
   }
 
   return (
-    <Card className="signal-card bg-[var(--surface-card)]">
+    <Card className="signal-card border bg-[var(--surface-card)]">
       <CardHeader className="p-5 pb-0">
         <CardTitle className="flex items-center gap-2 text-lg tracking-normal text-[var(--ink)]">
           <ScrollText className="size-4" />
@@ -1358,7 +1375,7 @@ function CuradoriaCard({
   const busy = saveMutation.isPending || approveMutation.isPending || rejectMutation.isPending;
 
   return (
-    <Card className="signal-card bg-[var(--surface-card)]">
+    <Card className="signal-card border bg-[var(--surface-card)]">
       <CardContent className="grid gap-4 p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Badge className="chip-soft rounded-full border-0 font-data">
@@ -1404,7 +1421,7 @@ function CuradoriaCard({
             placeholder="Opcional"
           />
         </Field>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap justify-end gap-2 border-t border-[var(--border-hairline)] pt-4">
           <Button
             type="button"
             variant="outline"
@@ -1462,7 +1479,7 @@ function UsuariosAdmin({
   return (
     <div className="grid gap-3">
       {usuarios.map((usuario) => (
-        <Card key={usuario.id} className="signal-card bg-[var(--surface-card)]">
+        <Card key={usuario.id} className="signal-card border bg-[var(--surface-card)]">
           <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0">
               <p className="truncate font-medium">{usuario.nome || usuario.email}</p>
@@ -1553,7 +1570,7 @@ function CategoriasAdmin({ categorias }: { categorias: { id: string; nome: strin
 
   return (
     <div className="grid gap-4">
-      <Card className="signal-card bg-[var(--surface-card)]">
+      <Card className="signal-card border bg-[var(--surface-card)]">
         <CardContent className="p-5">
           <form
             className="grid gap-3 md:grid-cols-[1fr_auto]"
@@ -1645,7 +1662,7 @@ function CategoriaAdminCard({
   const hasDores = categoria.dores_count > 0;
 
   return (
-    <Card className="signal-card bg-[var(--surface-card)]">
+    <Card className="signal-card border bg-[var(--surface-card)]">
       <CardContent className="grid gap-4 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Badge className="chip-soft rounded-full border-0 font-data">{categoria.nome}</Badge>
@@ -1727,7 +1744,9 @@ function Field({ children, label }: { children: ReactNode; label: string }) {
 
   return (
     <div className="grid gap-2">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className="text-xs font-bold uppercase text-[var(--ink-soft)]">
+        {label}
+      </Label>
       {children}
     </div>
   );
