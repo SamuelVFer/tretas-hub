@@ -66,7 +66,7 @@ export const Route = createFileRoute("/")({
 
 type View = "feed" | "enviar" | "minhas" | "admin";
 
-const MotionCard = motion(Card);
+const MotionCard = motion.create(Card);
 
 const feedListVariants = {
   hidden: {},
