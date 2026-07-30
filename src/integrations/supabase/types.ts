@@ -14,16 +14,192 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      categorias: {
+        Row: {
+          criado_em: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          criado_em?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          criado_em?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      dores: {
+        Row: {
+          aprovado_em: string | null
+          atualizado_em: string
+          autor_id: string
+          categoria_id: string
+          criado_em: string
+          descricao: string
+          empresa_contexto: string | null
+          id: string
+          motivo_rejeicao: string | null
+          status: Database["public"]["Enums"]["dor_status"]
+          titulo: string
+        }
+        Insert: {
+          aprovado_em?: string | null
+          atualizado_em?: string
+          autor_id: string
+          categoria_id: string
+          criado_em?: string
+          descricao: string
+          empresa_contexto?: string | null
+          id?: string
+          motivo_rejeicao?: string | null
+          status?: Database["public"]["Enums"]["dor_status"]
+          titulo: string
+        }
+        Update: {
+          aprovado_em?: string | null
+          atualizado_em?: string
+          autor_id?: string
+          categoria_id?: string
+          criado_em?: string
+          descricao?: string
+          empresa_contexto?: string | null
+          id?: string
+          motivo_rejeicao?: string | null
+          status?: Database["public"]["Enums"]["dor_status"]
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dores_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dores_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interesses: {
+        Row: {
+          criado_em: string
+          dor_id: string
+          id: string
+          usuario_id: string
+        }
+        Insert: {
+          criado_em?: string
+          dor_id: string
+          id?: string
+          usuario_id: string
+        }
+        Update: {
+          criado_em?: string
+          dor_id?: string
+          id?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interesses_dor_id_fkey"
+            columns: ["dor_id"]
+            isOneToOne: false
+            referencedRelation: "dores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interesses_dor_id_fkey"
+            columns: ["dor_id"]
+            isOneToOne: false
+            referencedRelation: "dores_publicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interesses_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      perfis: {
+        Row: {
+          banido: boolean
+          criado_em: string
+          email: string
+          id: string
+          nome: string
+          role: Database["public"]["Enums"]["user_role"]
+        }
+        Insert: {
+          banido?: boolean
+          criado_em?: string
+          email?: string
+          id: string
+          nome?: string
+          role?: Database["public"]["Enums"]["user_role"]
+        }
+        Update: {
+          banido?: boolean
+          criado_em?: string
+          email?: string
+          id?: string
+          nome?: string
+          role?: Database["public"]["Enums"]["user_role"]
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      dores_publicas: {
+        Row: {
+          aprovado_em: string | null
+          autor_id: string | null
+          categoria_id: string | null
+          categoria_nome: string | null
+          criado_em: string | null
+          descricao: string | null
+          empresa_contexto: string | null
+          id: string | null
+          interesse_count: number | null
+          status: Database["public"]["Enums"]["dor_status"] | null
+          titulo: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dores_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dores_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
-      [_ in never]: never
+      is_admin: { Args: { user_id?: string }; Returns: boolean }
+      is_banned: { Args: { user_id?: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      dor_status: "pendente" | "aprovada" | "rejeitada"
+      user_role: "user" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +326,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      dor_status: ["pendente", "aprovada", "rejeitada"],
+      user_role: ["user", "admin"],
+    },
   },
 } as const
