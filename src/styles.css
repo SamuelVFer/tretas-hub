@@ -63,41 +63,44 @@
 }
 
 :root {
-  --bg-base: #f7f5fa;
+  --bg-base: #fffcf7;
   --surface-card: #ffffff;
-  --accent-coral: #ff8a73;
-  --accent-coral-dark: #e85f45;
-  --accent-lilac: #b9a6e8;
-  --accent-lilac-dark: #6e5cb8;
-  --accent-mint: #a8e6c9;
-  --accent-mint-dark: #2e8b65;
-  --accent-butter: #fce3a0;
-  --accent-butter-dark: #a9770f;
-  --ink: #362e45;
-  --ink-soft: #6e6580;
-  --shadow-soft: 0 4px 12px rgb(54 46 69 / 8%);
-  --shadow-elevated: 0 18px 44px rgb(54 46 69 / 16%);
+  --border-hairline: #f0e9de;
+  --accent-orange: #ff9736;
+  --accent-orange-deep: #d9720c;
+  --accent-orange-tint: #ffefd9;
+  --ink: #2a2621;
+  --ink-soft: #756c60;
+  --ink-faint: #a79e90;
+  --status-aprovada: #3fa872;
+  --status-aprovada-tint: #e3f5ec;
+  --status-pendente: #7c86a1;
+  --status-pendente-tint: #eef0f6;
+  --status-rejeitada: #c55842;
+  --status-rejeitada-tint: #ffe8df;
+  --shadow-soft: 0 8px 24px rgb(42 38 33 / 6%);
+  --shadow-elevated: 0 18px 52px rgb(42 38 33 / 12%);
   --ease-signal: cubic-bezier(0.16, 1, 0.3, 1);
-  --radius: 1.125rem;
-  --background: oklch(0.973 0.011 305.52);
-  --foreground: oklch(0.286 0.049 303.98);
+  --radius: 0.75rem;
+  --background: oklch(0.991 0.012 82.24);
+  --foreground: oklch(0.256 0.014 67.78);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.286 0.049 303.98);
+  --card-foreground: oklch(0.256 0.014 67.78);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.286 0.049 303.98);
-  --primary: oklch(0.756 0.143 36.95);
-  --primary-foreground: oklch(0.484 0.161 34.71);
-  --secondary: oklch(0.827 0.085 296.21);
-  --secondary-foreground: oklch(0.504 0.14 294.06);
-  --muted: oklch(0.94 0.019 306.55);
-  --muted-foreground: oklch(0.515 0.042 304.05);
-  --accent: oklch(0.851 0.105 151.86);
-  --accent-foreground: oklch(0.535 0.111 155.32);
-  --destructive: oklch(0.756 0.143 36.95);
+  --popover-foreground: oklch(0.256 0.014 67.78);
+  --primary: oklch(0.76 0.166 55.8);
+  --primary-foreground: oklch(0.43 0.127 52.5);
+  --secondary: oklch(0.968 0.029 79.85);
+  --secondary-foreground: oklch(0.43 0.127 52.5);
+  --muted: oklch(0.96 0.01 82.1);
+  --muted-foreground: oklch(0.535 0.023 74.2);
+  --accent: oklch(0.968 0.029 79.85);
+  --accent-foreground: oklch(0.43 0.127 52.5);
+  --destructive: oklch(0.62 0.142 33.5);
   --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.897 0.024 305.68);
-  --input: oklch(0.897 0.024 305.68);
-  --ring: oklch(0.756 0.143 36.95);
+  --border: oklch(0.925 0.018 83.78);
+  --input: oklch(0.925 0.018 83.78);
+  --ring: oklch(0.76 0.166 55.8);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -154,10 +157,7 @@
   }
 
   body {
-    background:
-      radial-gradient(ellipse at 12% 5%, rgb(255 138 115 / 22%), transparent 38%),
-      radial-gradient(ellipse at 88% 8%, rgb(185 166 232 / 22%), transparent 36%),
-      radial-gradient(ellipse at 72% 88%, rgb(168 230 201 / 24%), transparent 42%), var(--bg-base);
+    background: var(--bg-base);
     color: var(--color-foreground);
     font-family: "Manrope", system-ui, sans-serif;
     letter-spacing: 0;
@@ -177,21 +177,46 @@
 
   .signal-shell {
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .signal-shell::before {
     content: "";
     position: fixed;
-    inset: -20%;
+    left: 50%;
+    top: -34rem;
+    z-index: 0;
+    pointer-events: none;
+    width: min(72rem, 130vw);
+    height: min(72rem, 130vw);
+    background: conic-gradient(
+      from 25deg,
+      rgb(255 151 54 / 22%),
+      rgb(255 239 217 / 62%),
+      rgb(255 203 158 / 30%),
+      rgb(255 252 247 / 20%),
+      rgb(255 151 54 / 22%)
+    );
+    border-radius: 999px;
+    filter: blur(58px);
+    opacity: 0.88;
+    transform: translateX(-50%);
+    animation: sunny-spin 40s linear infinite;
+  }
+
+  .signal-shell::after {
+    content: "";
+    position: fixed;
+    inset: -12%;
     z-index: 0;
     pointer-events: none;
     background:
-      radial-gradient(ellipse at 18% 22%, rgb(255 138 115 / 18%), transparent 30%),
-      radial-gradient(ellipse at 86% 20%, rgb(185 166 232 / 18%), transparent 28%),
-      radial-gradient(ellipse at 64% 78%, rgb(168 230 201 / 18%), transparent 32%);
-    filter: blur(42px);
-    animation: ambient-drift 34s ease-in-out infinite alternate;
+      radial-gradient(circle at 14% 28%, rgb(255 151 54 / 18%), transparent 16rem),
+      radial-gradient(circle at 84% 18%, rgb(255 205 165 / 24%), transparent 18rem),
+      radial-gradient(circle at 72% 86%, rgb(240 233 222 / 50%), transparent 22rem);
+    filter: blur(36px);
+    animation: sunny-drift 31s ease-in-out infinite alternate;
   }
 
   .signal-content {
@@ -200,37 +225,42 @@
   }
 
   .signal-card {
-    border-color: rgb(54 46 69 / 8%);
-    border-radius: 20px;
+    border-color: var(--border-hairline);
+    border-radius: 8px;
     box-shadow: var(--shadow-soft);
   }
 
   .signal-halo {
     box-shadow:
-      0 0 0 1px rgb(255 138 115 / 15%),
-      0 0 44px rgb(255 138 115 / 24%),
+      0 0 0 1px rgb(255 151 54 / 24%),
+      0 0 42px rgb(255 151 54 / 18%),
       var(--shadow-soft);
     animation: signal-halo-breathe 3s ease-in-out infinite;
   }
 
-  .chip-coral {
-    background: rgb(255 138 115 / 22%);
-    color: var(--accent-coral-dark);
+  .chip-orange {
+    background: var(--accent-orange-tint);
+    color: var(--accent-orange-deep);
   }
 
-  .chip-lilac {
-    background: rgb(185 166 232 / 28%);
-    color: var(--accent-lilac-dark);
+  .chip-soft {
+    background: rgb(240 233 222 / 48%);
+    color: var(--ink-soft);
   }
 
-  .chip-mint {
-    background: rgb(168 230 201 / 36%);
-    color: var(--accent-mint-dark);
+  .chip-success {
+    background: var(--status-aprovada-tint);
+    color: var(--status-aprovada);
   }
 
-  .chip-butter {
-    background: rgb(252 227 160 / 52%);
-    color: var(--accent-butter-dark);
+  .chip-pending {
+    background: var(--status-pendente-tint);
+    color: var(--status-pendente);
+  }
+
+  .chip-danger {
+    background: var(--status-rejeitada-tint);
+    color: var(--status-rejeitada);
   }
 
   .pending-breathe {
@@ -240,26 +270,39 @@
   .interest-ring {
     position: absolute;
     inset: -10px;
-    border: 2px solid rgb(255 138 115 / 42%);
+    border: 1px solid rgb(255 151 54 / 50%);
     border-radius: 999px;
     pointer-events: none;
   }
 
-  .heart-particle {
+  .sun-ray {
     position: absolute;
     left: 50%;
     top: 50%;
-    color: var(--accent-coral-dark);
+    height: 2px;
+    width: 15px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--accent-orange), rgb(255 151 54 / 0%));
+    transform-origin: left center;
     pointer-events: none;
   }
 }
 
-@keyframes ambient-drift {
+@keyframes sunny-spin {
+  0% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+  100% {
+    transform: translateX(-50%) rotate(360deg);
+  }
+}
+
+@keyframes sunny-drift {
   0% {
     transform: translate3d(-2%, -1%, 0) scale(1);
   }
   100% {
-    transform: translate3d(2%, 1.5%, 0) scale(1.06);
+    transform: translate3d(2.5%, 1.8%, 0) scale(1.05);
   }
 }
 
@@ -268,13 +311,13 @@
   100% {
     box-shadow:
       0 0 0 1px rgb(255 138 115 / 12%),
-      0 0 28px rgb(255 138 115 / 16%),
+      0 0 28px rgb(255 151 54 / 14%),
       var(--shadow-soft);
   }
   50% {
     box-shadow:
-      0 0 0 1px rgb(255 138 115 / 20%),
-      0 0 56px rgb(255 138 115 / 30%),
+      0 0 0 1px rgb(255 151 54 / 28%),
+      0 0 58px rgb(255 151 54 / 24%),
       var(--shadow-elevated);
   }
 }
