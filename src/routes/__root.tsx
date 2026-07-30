@@ -94,8 +94,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:site", content: "@tretashub" },
       { name: "twitter:title", content: "Tretas HUB" },
       { name: "twitter:description", content: "Direcionamos sua determinação a grandes ideias!" },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/87c65baa-7ba8-4a55-adf1-470b3583f399/id-preview-00d17fe2--933adbe5-7aa3-4635-9b76-47a3344c5d33.lovable.app-1785391467435.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/87c65baa-7ba8-4a55-adf1-470b3583f399/id-preview-00d17fe2--933adbe5-7aa3-4635-9b76-47a3344c5d33.lovable.app-1785391467435.png" },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/87c65baa-7ba8-4a55-adf1-470b3583f399/id-preview-00d17fe2--933adbe5-7aa3-4635-9b76-47a3344c5d33.lovable.app-1785391467435.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/87c65baa-7ba8-4a55-adf1-470b3583f399/id-preview-00d17fe2--933adbe5-7aa3-4635-9b76-47a3344c5d33.lovable.app-1785391467435.png",
+      },
     ],
     links: [
       {
