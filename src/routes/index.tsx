@@ -9,9 +9,5 @@ export const Route = createFileRoute("/")({
 
 // IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Empty screen */}
-    </div>
-  );
+  return null;
 }
