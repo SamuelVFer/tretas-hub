@@ -379,7 +379,7 @@ function AuthBox({
               <Field label="Senha">
                 <Input
                   type="password"
-                  minLength={6}
+                  minLength={5}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   required
