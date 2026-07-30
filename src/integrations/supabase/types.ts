@@ -159,6 +159,42 @@ export type Database = {
         }
         Relationships: []
       }
+      registros_auditoria: {
+        Row: {
+          acao: Database["public"]["Enums"]["audit_acao"]
+          ator_email: string | null
+          ator_id: string | null
+          criado_em: string
+          dados_antigos: Json | null
+          dados_novos: Json | null
+          id: string
+          registro_id: string | null
+          tabela: string
+        }
+        Insert: {
+          acao: Database["public"]["Enums"]["audit_acao"]
+          ator_email?: string | null
+          ator_id?: string | null
+          criado_em?: string
+          dados_antigos?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          registro_id?: string | null
+          tabela: string
+        }
+        Update: {
+          acao?: Database["public"]["Enums"]["audit_acao"]
+          ator_email?: string | null
+          ator_id?: string | null
+          criado_em?: string
+          dados_antigos?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          registro_id?: string | null
+          tabela?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       dores_publicas: {
@@ -194,9 +230,10 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      registrar_login: { Args: never; Returns: undefined }
     }
     Enums: {
+      audit_acao: "insert" | "update" | "delete" | "login"
       dor_status: "pendente" | "aprovada" | "rejeitada"
       user_role: "user" | "admin"
     }
@@ -326,6 +363,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      audit_acao: ["insert", "update", "delete", "login"],
       dor_status: ["pendente", "aprovada", "rejeitada"],
       user_role: ["user", "admin"],
     },
