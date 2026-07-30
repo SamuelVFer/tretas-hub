@@ -1,4 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
+import { createServerFn } from "@tanstack/react-start";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -18,6 +19,22 @@ export type NovaDorInput = {
   categoriaId: string;
   empresaContexto?: string;
 };
+
+const criarDorPublicaServer = createServerFn({ method: "POST" })
+  .validator((input: NovaDorInput) => input)
+  .handler(async ({ data: input }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("dores").insert({
+      titulo: input.titulo.trim(),
+      descricao: input.descricao.trim(),
+      categoria_id: input.categoriaId,
+      empresa_contexto: input.empresaContexto?.trim() || null,
+      status: "pendente",
+      autor_id: null,
+    });
+
+    if (error) throw error;
+  });
 
 export type EditarDorInput = {
   id: string;
@@ -156,15 +173,7 @@ export async function listarMeusInteresses(usuarioId?: string): Promise<Set<stri
 }
 
 export async function criarDor(input: NovaDorInput) {
-  const { error } = await supabase.from("dores").insert({
-    titulo: input.titulo.trim(),
-    descricao: input.descricao.trim(),
-    categoria_id: input.categoriaId,
-    empresa_contexto: input.empresaContexto?.trim() || null,
-    status: "pendente",
-  });
-
-  if (error) throw error;
+  await criarDorPublicaServer({ data: input });
 }
 
 export async function marcarInteresse(dorId: string, usuarioId: string) {
