@@ -25,3 +25,12 @@ where email = 'email-do-admin@exemplo.com';
 ```
 
 - Validar o fluxo ponta a ponta com usuários reais: cadastro, envio, aprovação, feed, interesse e bloqueio de usuário comum no admin.
+
+### Identidade visual v1
+
+- Aplicados tokens "Sinal quente" no CSS com paleta Neblina/Nuvem/Coral/Lilás/Menta/Manteiga/Tinta Ameixa.
+- Adicionadas fontes Google: Instrument Serif, Manrope e IBM Plex Mono.
+- Adicionado `framer-motion` para animações de feed, hover de card, pill de abas, interesse com bounce/pulso/partículas e contador animado.
+- Cards com 5+ interesses recebem halo coral com respiração suave.
+- Status `pendente` pulsa suavemente e `prefers-reduced-motion` reduz animações globais.
+- O arquivo `tretas-hub-preview.html` citado no briefing não foi encontrado no repo nem no VPS; a implementação seguiu os tokens e especificações textuais do briefing.

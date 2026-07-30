@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
   Check,
@@ -52,6 +53,26 @@ export const Route = createFileRoute("/")({
 
 type View = "feed" | "enviar" | "minhas" | "admin";
 type AuthMode = "login" | "cadastro";
+
+const MotionCard = motion(Card);
+
+const feedListVariants = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.06,
+    },
+  },
+};
+
+const feedCardVariants = {
+  hidden: { opacity: 0, y: 16 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+  },
+};
 
 function Index() {
   const queryClient = useQueryClient();
@@ -114,18 +135,18 @@ function Index() {
   const categorias = categoriasQuery.data ?? [];
 
   return (
-    <main className="min-h-screen bg-background">
-      <section className="border-b bg-card">
+    <main className="signal-shell min-h-screen bg-background text-[var(--ink)]">
+      <section className="signal-content border-b border-[rgb(54_46_69_/_8%)] bg-[rgb(255_255_255_/_72%)] backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-3xl font-semibold tracking-normal text-foreground">
+                <h1 className="font-display text-5xl tracking-normal text-[var(--ink)]">
                   Tretas HUB
                 </h1>
-                <Badge variant="secondary">MVP</Badge>
+                <Badge className="chip-coral rounded-full border-0 font-data">MVP</Badge>
               </div>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--ink-soft)]">
                 Dores reais, curadas e públicas para encontrar oportunidades com sinal de interesse.
               </p>
             </div>
@@ -141,7 +162,7 @@ function Index() {
 
           {!isSupabaseConfigured ? <SetupBanner /> : null}
 
-          <nav className="flex flex-wrap gap-2">
+          <nav className="relative flex w-fit max-w-full flex-wrap gap-2 rounded-full bg-white/70 p-1 shadow-[var(--shadow-soft)] backdrop-blur-xl">
             <NavButton active={view === "feed"} onClick={() => setView("feed")}>
               Feed público
             </NavButton>
@@ -168,7 +189,7 @@ function Index() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <section className="signal-content mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {view === "feed" ? (
           <FeedPanel
             categoriaFiltro={categoriaFiltro}
@@ -203,13 +224,13 @@ function Index() {
 
 function SetupBanner() {
   return (
-    <div className="flex items-start gap-3 rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm">
+    <div className="signal-card flex items-start gap-3 border border-[rgb(255_138_115_/_28%)] bg-[rgb(255_138_115_/_13%)] p-4 text-sm">
       <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
       <div>
         <p className="font-medium text-foreground">
           Supabase ainda não configurado neste ambiente.
         </p>
-        <p className="mt-1 text-muted-foreground">
+        <p className="mt-1 text-[var(--ink-soft)]">
           Defina <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_ANON_KEY</code>, depois
           aplique a migration em <code>supabase/migrations</code>.
         </p>
@@ -232,12 +253,23 @@ function NavButton({
   return (
     <Button
       type="button"
-      variant={active ? "default" : "outline"}
+      variant="ghost"
       size="sm"
       disabled={disabled}
       onClick={onClick}
+      className={cn(
+        "relative overflow-hidden rounded-full border-0 bg-transparent px-4 font-medium text-[var(--ink-soft)] shadow-none hover:bg-transparent hover:text-[var(--ink)]",
+        active && "text-[var(--accent-coral-dark)]",
+      )}
     >
-      {children}
+      {active ? (
+        <motion.span
+          layoutId="active-nav-pill"
+          className="absolute inset-0 rounded-full bg-[rgb(255_138_115_/_22%)]"
+          transition={{ type: "spring", stiffness: 420, damping: 32 }}
+        />
+      ) : null}
+      <span className="relative z-10">{children}</span>
     </Button>
   );
 }
@@ -278,7 +310,7 @@ function AuthBox({
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2 text-sm text-[var(--ink-soft)]">
         <Loader2 className="size-4 animate-spin" />
         Carregando sessão
       </div>
@@ -297,7 +329,7 @@ function AuthBox({
             )}
             {perfil.nome || perfil.email}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="font-data text-xs text-[var(--ink-soft)]">
             {perfil.role === "admin" ? "Admin" : "Usuário"}
           </p>
         </div>
@@ -316,7 +348,7 @@ function AuthBox({
   }
 
   return (
-    <Card className="w-full max-w-md rounded-md shadow-sm md:w-[430px]">
+    <Card className="signal-card w-full max-w-md bg-[var(--surface-card)] md:w-[430px]">
       <CardContent className="p-4">
         <div className="mb-3 flex gap-2">
           <Button
@@ -403,8 +435,8 @@ function FeedPanel({
     <div className="grid gap-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-xl font-semibold tracking-normal">Feed público</h2>
-          <p className="text-sm text-muted-foreground">Dores aprovadas pela curadoria.</p>
+          <h2 className="font-display text-3xl tracking-normal text-[var(--ink)]">Feed público</h2>
+          <p className="text-sm text-[var(--ink-soft)]">Dores aprovadas pela curadoria.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Select
@@ -438,7 +470,12 @@ function FeedPanel({
         />
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <motion.div
+        variants={feedListVariants}
+        initial="hidden"
+        animate="show"
+        className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+      >
         {dores.map((dor) => (
           <DorCard
             key={dor.id}
@@ -447,7 +484,7 @@ function FeedPanel({
             sessionUserId={sessionUserId}
           />
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -462,11 +499,15 @@ function DorCard({
   sessionUserId?: string;
 }) {
   const queryClient = useQueryClient();
+  const prefersReducedMotion = useReducedMotion();
+  const [burstKey, setBurstKey] = useState(0);
   const interestMutation = useMutation({
-    mutationFn: () =>
-      interessado
+    mutationFn: async () => {
+      if (!interessado) setBurstKey((value) => value + 1);
+      return interessado
         ? removerInteresse(dor.id, sessionUserId ?? "")
-        : marcarInteresse(dor.id, sessionUserId ?? ""),
+        : marcarInteresse(dor.id, sessionUserId ?? "");
+    },
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["feed"] }),
@@ -477,27 +518,81 @@ function DorCard({
   });
 
   const resumo = dor.descricao.length > 190 ? `${dor.descricao.slice(0, 187)}...` : dor.descricao;
+  const isHot = dor.interesse_count >= 5;
 
   return (
-    <Card className="flex min-h-[260px] flex-col rounded-md shadow-sm">
+    <MotionCard
+      variants={feedCardVariants}
+      whileHover={
+        prefersReducedMotion
+          ? undefined
+          : {
+              y: -4,
+              scale: 1.01,
+              boxShadow: "var(--shadow-elevated)",
+              transition: { duration: 0.25, ease: "easeOut" },
+            }
+      }
+      className={cn(
+        "signal-card flex min-h-[260px] flex-col bg-[var(--surface-card)]",
+        isHot && "signal-halo",
+      )}
+    >
       <CardHeader className="space-y-3 p-5 pb-3">
         <div className="flex items-start justify-between gap-3">
-          <Badge variant="secondary">{dor.categoria_nome}</Badge>
-          <span className="whitespace-nowrap text-xs text-muted-foreground">
+          <Badge className="chip-lilac rounded-full border-0 font-data">{dor.categoria_nome}</Badge>
+          <span className="whitespace-nowrap font-data text-xs text-[var(--ink-soft)]">
             {formatDate(dor.criado_em)}
           </span>
         </div>
-        <CardTitle className="text-lg leading-6 tracking-normal">{dor.titulo}</CardTitle>
+        <CardTitle className="text-lg leading-6 tracking-normal text-[var(--ink)]">
+          {dor.titulo}
+        </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4 p-5 pt-0">
-        <p className="line-clamp-5 text-sm leading-6 text-muted-foreground">{resumo}</p>
+        <p className="line-clamp-5 text-sm leading-6 text-[var(--ink-soft)]">{resumo}</p>
         {dor.empresa_contexto ? (
-          <p className="text-xs text-muted-foreground">Contexto: {dor.empresa_contexto}</p>
+          <p className="font-data text-xs text-[var(--ink-soft)]">
+            Contexto: {dor.empresa_contexto}
+          </p>
         ) : null}
         <div className="mt-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-sm font-medium">
-            <Heart className={cn("size-4", interessado ? "fill-current text-destructive" : "")} />
-            {dor.interesse_count} interessados
+            <motion.span
+              key={`heart-${burstKey}`}
+              className="relative grid size-8 place-items-center rounded-full bg-[rgb(255_138_115_/_18%)] text-[var(--accent-coral-dark)]"
+              animate={
+                burstKey > 0 && !prefersReducedMotion ? { scale: [1, 1.3, 1] } : { scale: 1 }
+              }
+              transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <Heart className={cn("size-4", interessado ? "fill-current" : "")} />
+              <AnimatePresence>
+                {burstKey > 0 && !prefersReducedMotion ? (
+                  <motion.span
+                    key={`ring-${burstKey}`}
+                    className="interest-ring"
+                    initial={{ scale: 0.65, opacity: 0.5 }}
+                    animate={{ scale: 1.9, opacity: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                  />
+                ) : null}
+              </AnimatePresence>
+              <InterestParticles burstKey={burstKey} />
+            </motion.span>
+            <motion.span
+              key={dor.interesse_count}
+              className="font-data text-[var(--ink)]"
+              initial={
+                prefersReducedMotion ? false : { scale: 1.14, color: "var(--accent-coral-dark)" }
+              }
+              animate={{ scale: 1, color: "var(--ink)" }}
+              transition={{ duration: 0.35 }}
+            >
+              {dor.interesse_count}
+            </motion.span>
+            <span className="text-[var(--ink-soft)]">interessados</span>
           </div>
           <Button
             type="button"
@@ -506,6 +601,7 @@ function DorCard({
             disabled={!sessionUserId || interestMutation.isPending}
             onClick={() => interestMutation.mutate()}
             title={!sessionUserId ? "Entre para marcar interesse" : undefined}
+            className="rounded-full"
           >
             {interestMutation.isPending ? (
               <Loader2 className="size-4 animate-spin" />
@@ -516,7 +612,42 @@ function DorCard({
           </Button>
         </div>
       </CardContent>
-    </Card>
+    </MotionCard>
+  );
+}
+
+function InterestParticles({ burstKey }: { burstKey: number }) {
+  const prefersReducedMotion = useReducedMotion();
+  if (burstKey === 0 || prefersReducedMotion) return null;
+
+  const particles = [
+    { x: -26, y: -28, rotate: -18 },
+    { x: 24, y: -34, rotate: 14 },
+    { x: -34, y: 6, rotate: -28 },
+    { x: 32, y: 4, rotate: 24 },
+    { x: -8, y: -42, rotate: 8 },
+  ];
+
+  return (
+    <AnimatePresence>
+      {particles.map((particle, index) => (
+        <motion.span
+          key={`${burstKey}-${index}`}
+          className="heart-particle"
+          initial={{ x: "-50%", y: "-50%", scale: 0.4, opacity: 0 }}
+          animate={{
+            x: `calc(-50% + ${particle.x}px)`,
+            y: `calc(-50% + ${particle.y}px)`,
+            scale: [0.4, 1, 0.15],
+            opacity: [0, 0.9, 0],
+            rotate: particle.rotate,
+          }}
+          transition={{ duration: 0.7, delay: index * 0.035, ease: [0.16, 1, 0.3, 1] }}
+        >
+          ♥
+        </motion.span>
+      ))}
+    </AnimatePresence>
   );
 }
 
@@ -558,9 +689,11 @@ function EnviarDorPanel({
   });
 
   return (
-    <Card className="mx-auto max-w-3xl rounded-md shadow-sm">
+    <Card className="signal-card mx-auto max-w-3xl bg-[var(--surface-card)]">
       <CardHeader>
-        <CardTitle className="tracking-normal">Enviar uma dor</CardTitle>
+        <CardTitle className="font-display text-3xl tracking-normal text-[var(--ink)]">
+          Enviar uma dor
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <form
@@ -630,22 +763,22 @@ function MinhasDoresPanel({ dores, isLoading }: { dores: Dor[]; isLoading: boole
   return (
     <div className="grid gap-4">
       <div>
-        <h2 className="text-xl font-semibold tracking-normal">Minhas dores</h2>
-        <p className="text-sm text-muted-foreground">Acompanhe o status do que você enviou.</p>
+        <h2 className="font-display text-3xl tracking-normal text-[var(--ink)]">Minhas dores</h2>
+        <p className="text-sm text-[var(--ink-soft)]">Acompanhe o status do que você enviou.</p>
       </div>
       {dores.length === 0 ? (
         <EmptyState title="Nada enviado ainda" text="Envie a primeira dor para curadoria." />
       ) : null}
       {dores.map((dor) => (
-        <Card key={dor.id} className="rounded-md shadow-sm">
+        <Card key={dor.id} className="signal-card bg-[var(--surface-card)]">
           <CardContent className="grid gap-3 p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="font-semibold tracking-normal">{dor.titulo}</h3>
+              <h3 className="font-semibold tracking-normal text-[var(--ink)]">{dor.titulo}</h3>
               <StatusBadge status={dor.status} />
             </div>
-            <p className="text-sm leading-6 text-muted-foreground">{dor.descricao}</p>
+            <p className="text-sm leading-6 text-[var(--ink-soft)]">{dor.descricao}</p>
             {dor.motivo_rejeicao ? (
-              <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              <p className="rounded-2xl bg-[rgb(255_138_115_/_14%)] p-3 text-sm text-[var(--accent-coral-dark)]">
                 Motivo da rejeição: {dor.motivo_rejeicao}
               </p>
             ) : null}
@@ -671,11 +804,11 @@ function AdminPanel({ categorias }: { categorias: { id: string; nome: string }[]
     <div className="grid gap-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="flex items-center gap-2 text-xl font-semibold tracking-normal">
+          <h2 className="font-display flex items-center gap-2 text-3xl tracking-normal text-[var(--ink)]">
             <Shield className="size-5" />
             Painel admin
           </h2>
-          <p className="text-sm text-muted-foreground">Curadoria, categorias e usuários.</p>
+          <p className="text-sm text-[var(--ink-soft)]">Curadoria, categorias e usuários.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <NavButton active={tab === "curadoria"} onClick={() => setTab("curadoria")}>
@@ -796,11 +929,13 @@ function CuradoriaCard({
   const busy = saveMutation.isPending || approveMutation.isPending || rejectMutation.isPending;
 
   return (
-    <Card className="rounded-md shadow-sm">
+    <Card className="signal-card bg-[var(--surface-card)]">
       <CardContent className="grid gap-4 p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <Badge variant="secondary">{dor.categorias?.nome ?? "Sem categoria"}</Badge>
-          <span className="text-xs text-muted-foreground">
+          <Badge className="chip-lilac rounded-full border-0 font-data">
+            {dor.categorias?.nome ?? "Sem categoria"}
+          </Badge>
+          <span className="font-data text-xs text-[var(--ink-soft)]">
             Enviada em {formatDate(dor.criado_em)}
           </span>
         </div>
@@ -898,17 +1033,24 @@ function UsuariosAdmin({
   return (
     <div className="grid gap-3">
       {usuarios.map((usuario) => (
-        <Card key={usuario.id} className="rounded-md shadow-sm">
+        <Card key={usuario.id} className="signal-card bg-[var(--surface-card)]">
           <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0">
               <p className="truncate font-medium">{usuario.nome || usuario.email}</p>
-              <p className="truncate text-sm text-muted-foreground">{usuario.email}</p>
+              <p className="truncate text-sm text-[var(--ink-soft)]">{usuario.email}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant={usuario.role === "admin" ? "default" : "secondary"}>
+              <Badge
+                className={cn(
+                  "rounded-full border-0 font-data",
+                  usuario.role === "admin" ? "chip-lilac" : "chip-mint",
+                )}
+              >
                 {usuario.role}
               </Badge>
-              {usuario.banido ? <Badge variant="destructive">banido</Badge> : null}
+              {usuario.banido ? (
+                <Badge className="chip-coral rounded-full border-0 font-data">banido</Badge>
+              ) : null}
               <Button
                 type="button"
                 size="sm"
@@ -949,16 +1091,16 @@ function UsuariosAdmin({
 
 function CategoriasAdmin({ categorias }: { categorias: { id: string; nome: string }[] }) {
   return (
-    <Card className="rounded-md shadow-sm">
+    <Card className="signal-card bg-[var(--surface-card)]">
       <CardContent className="grid gap-3 p-5">
         <div className="flex flex-wrap gap-2">
           {categorias.map((categoria) => (
-            <Badge key={categoria.id} variant="secondary">
+            <Badge key={categoria.id} className="chip-lilac rounded-full border-0 font-data">
               {categoria.nome}
             </Badge>
           ))}
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-[var(--ink-soft)]">
           O MVP já inclui gerenciamento seguro no banco. A edição visual de categorias fica limitada
           nesta primeira versão para evitar expandir escopo além da curadoria essencial.
         </p>
@@ -992,7 +1134,7 @@ function Select({
   return (
     <select
       aria-label={ariaLabel}
-      className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      className="h-9 rounded-full border border-[rgb(54_46_69_/_10%)] bg-white/80 px-3 font-data text-sm text-[var(--ink)] shadow-[var(--shadow-soft)] outline-none focus-visible:ring-1 focus-visible:ring-ring"
       value={value}
       onChange={(event) => onChange(event.target.value)}
     >
@@ -1006,16 +1148,25 @@ function Select({
 }
 
 function StatusBadge({ status }: { status: Dor["status"] }) {
-  if (status === "aprovada") return <Badge>Aprovada</Badge>;
-  if (status === "rejeitada") return <Badge variant="destructive">Rejeitada</Badge>;
-  return <Badge variant="secondary">Pendente</Badge>;
+  if (status === "aprovada") {
+    return <Badge className="chip-mint rounded-full border-0 font-data">Aprovada</Badge>;
+  }
+  if (status === "rejeitada") {
+    return <Badge className="chip-coral rounded-full border-0 font-data">Rejeitada</Badge>;
+  }
+  return (
+    <Badge className="chip-butter pending-breathe rounded-full border-0 font-data">Pendente</Badge>
+  );
 }
 
 function LoadingRows() {
   return (
     <div className="grid gap-3">
       {[0, 1, 2].map((item) => (
-        <div key={item} className="h-24 animate-pulse rounded-md border bg-muted/40" />
+        <div
+          key={item}
+          className="h-24 animate-pulse rounded-[20px] border border-[rgb(54_46_69_/_8%)] bg-white/55"
+        />
       ))}
     </div>
   );
@@ -1023,17 +1174,17 @@ function LoadingRows() {
 
 function EmptyState({ text, title }: { text: string; title: string }) {
   return (
-    <div className="rounded-md border border-dashed p-8 text-center">
-      <Eye className="mx-auto mb-3 size-5 text-muted-foreground" />
-      <p className="font-medium">{title}</p>
-      <p className="mt-1 text-sm text-muted-foreground">{text}</p>
+    <div className="signal-card border border-dashed border-[rgb(54_46_69_/_14%)] bg-white/62 p-8 text-center">
+      <Eye className="mx-auto mb-3 size-5 text-[var(--ink-soft)]" />
+      <p className="font-medium text-[var(--ink)]">{title}</p>
+      <p className="mt-1 text-sm text-[var(--ink-soft)]">{text}</p>
     </div>
   );
 }
 
 function ErrorBox({ error }: { error: unknown }) {
   return (
-    <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+    <div className="signal-card border border-[rgb(255_138_115_/_28%)] bg-[rgb(255_138_115_/_14%)] p-4 text-sm text-[var(--accent-coral-dark)]">
       {readableError(error)}
     </div>
   );
