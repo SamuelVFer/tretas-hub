@@ -230,7 +230,7 @@ export type Database = {
       }
     }
     Functions: {
-      registrar_login: { Args: never; Returns: undefined }
+      [_ in never]: never
     }
     Enums: {
       audit_acao: "insert" | "update" | "delete" | "login"
