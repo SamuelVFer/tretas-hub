@@ -5,6 +5,8 @@ import type { Tables } from "@/integrations/supabase/types";
 import type { Categoria, Dor, DorPublica, Perfil } from "./database.types";
 import { supabase } from "./supabase";
 
+export type DorStatus = "pendente" | "aprovada" | "rejeitada";
+
 export type AuthState = {
   session: Session | null;
   perfil: Perfil | null;
@@ -23,6 +25,8 @@ export type EditarDorInput = {
   descricao: string;
   categoriaId: string;
   empresaContexto?: string | null;
+  status?: DorStatus;
+  motivoRejeicao?: string | null;
 };
 
 export async function getAuthState(): Promise<AuthState> {
@@ -67,6 +71,55 @@ export async function listarCategorias(): Promise<Categoria[]> {
   const { data, error } = await supabase.from("categorias").select("*").order("nome");
   if (error) throw error;
   return data ?? [];
+}
+
+export type CategoriaAdmin = Categoria & {
+  dores_count: number;
+};
+
+export async function listarCategoriasAdmin(): Promise<CategoriaAdmin[]> {
+  const [{ data: categorias, error: categoriasError }, { data: dores, error: doresError }] =
+    await Promise.all([
+      supabase.from("categorias").select("*").order("nome"),
+      supabase.from("dores").select("categoria_id"),
+    ]);
+
+  if (categoriasError) throw categoriasError;
+  if (doresError) throw doresError;
+
+  const counts = new Map<string, number>();
+  for (const dor of dores ?? []) {
+    counts.set(dor.categoria_id, (counts.get(dor.categoria_id) ?? 0) + 1);
+  }
+
+  return (categorias ?? []).map((categoria) => ({
+    ...categoria,
+    dores_count: counts.get(categoria.id) ?? 0,
+  }));
+}
+
+export async function criarCategoria(nome: string) {
+  const { error } = await supabase.from("categorias").insert({ nome: nome.trim() });
+  if (error) throw error;
+}
+
+export async function atualizarCategoria(id: string, nome: string) {
+  const { error } = await supabase.from("categorias").update({ nome: nome.trim() }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function excluirCategoria(id: string) {
+  const { error } = await supabase.from("categorias").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function moverDoresDeCategoria(origemId: string, destinoId: string) {
+  const { error } = await supabase
+    .from("dores")
+    .update({ categoria_id: destinoId })
+    .eq("categoria_id", origemId);
+
+  if (error) throw error;
 }
 
 export async function listarFeed(
@@ -160,15 +213,20 @@ export async function listarPendentesAdmin(): Promise<
 }
 
 export async function atualizarDorAdmin(input: EditarDorInput) {
-  const { error } = await supabase
-    .from("dores")
-    .update({
-      titulo: input.titulo.trim(),
-      descricao: input.descricao.trim(),
-      categoria_id: input.categoriaId,
-      empresa_contexto: input.empresaContexto?.trim() || null,
-    })
-    .eq("id", input.id);
+  const updates: Partial<Tables<"dores">> = {
+    titulo: input.titulo.trim(),
+    descricao: input.descricao.trim(),
+    categoria_id: input.categoriaId,
+    empresa_contexto: input.empresaContexto?.trim() || null,
+  };
+
+  if (input.status) {
+    updates.status = input.status;
+    updates.motivo_rejeicao =
+      input.status === "rejeitada" ? input.motivoRejeicao?.trim() || null : null;
+  }
+
+  const { error } = await supabase.from("dores").update(updates).eq("id", input.id);
 
   if (error) throw error;
 }
@@ -228,9 +286,11 @@ export async function listarAuditoria(): Promise<RegistroAuditoria[]> {
 
 export async function listarDoresAdmin(
   status: "todas" | "pendente" | "aprovada" | "rejeitada" = "todas",
+  categoriaId = "todas",
 ): Promise<(Dor & { categorias: { nome: string } | null })[]> {
   let query = supabase.from("dores").select("*, categorias(nome)");
   if (status !== "todas") query = query.eq("status", status);
+  if (categoriaId !== "todas") query = query.eq("categoria_id", categoriaId);
 
   const { data, error } = await query.order("criado_em", { ascending: false });
   if (error) throw error;

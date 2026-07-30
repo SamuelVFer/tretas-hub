@@ -9,6 +9,7 @@ import {
   Heart,
   Loader2,
   LogOut,
+  Plus,
   ScrollText,
   Shield,
   SlidersHorizontal,
@@ -29,13 +30,17 @@ import type { Dor, Perfil } from "@/lib/database.types";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import {
   aprovarDor,
+  atualizarCategoria,
   atualizarDorAdmin,
   atualizarUsuarioAdmin,
+  criarCategoria,
   criarDor,
+  excluirCategoria,
   excluirDor,
   getAuthState,
   listarAuditoria,
   listarCategorias,
+  listarCategoriasAdmin,
   listarDoresAdmin,
   listarFeed,
   listarMeusInteresses,
@@ -43,6 +48,7 @@ import {
   listarPendentesAdmin,
   listarUsuariosAdmin,
   marcarInteresse,
+  moverDoresDeCategoria,
   registrarLogin,
   rejeitarDor,
   removerInteresse,
@@ -824,7 +830,7 @@ function AdminPanel({ categorias }: { categorias: { id: string; nome: string }[]
         />
       ) : null}
 
-      {tab === "dores" ? <DoresAdmin /> : null}
+      {tab === "dores" ? <DoresAdmin categorias={categorias} /> : null}
 
       {tab === "usuarios" ? (
         <UsuariosAdmin
@@ -841,12 +847,13 @@ function AdminPanel({ categorias }: { categorias: { id: string; nome: string }[]
   );
 }
 
-function DoresAdmin() {
+function DoresAdmin({ categorias }: { categorias: { id: string; nome: string }[] }) {
   const queryClient = useQueryClient();
   const [filtro, setFiltro] = useState<"todas" | "pendente" | "aprovada" | "rejeitada">("aprovada");
+  const [categoriaFiltro, setCategoriaFiltro] = useState("todas");
   const doresQuery = useQuery({
-    queryKey: ["admin-dores", filtro],
-    queryFn: () => listarDoresAdmin(filtro),
+    queryKey: ["admin-dores", filtro, categoriaFiltro],
+    queryFn: () => listarDoresAdmin(filtro, categoriaFiltro),
   });
 
   const excluirMutation = useMutation({
@@ -877,6 +884,15 @@ function DoresAdmin() {
             { value: "todas", label: "Todas" },
           ]}
         />
+        <Select
+          ariaLabel="Filtrar categoria"
+          value={categoriaFiltro}
+          onChange={setCategoriaFiltro}
+          options={[
+            { value: "todas", label: "Todas categorias" },
+            ...categorias.map((categoria) => ({ value: categoria.id, label: categoria.nome })),
+          ]}
+        />
       </div>
 
       {doresQuery.error ? <ErrorBox error={doresQuery.error} /> : null}
@@ -886,39 +902,144 @@ function DoresAdmin() {
       ) : null}
 
       {(doresQuery.data ?? []).map((dor) => (
-        <Card key={dor.id} className="signal-card bg-[var(--surface-card)]">
-          <CardContent className="grid gap-3 p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge status={dor.status} />
-                <Badge className="chip-lilac rounded-full border-0 font-data">
-                  {dor.categorias?.nome ?? "Sem categoria"}
-                </Badge>
-                <span className="font-data text-xs text-[var(--ink-soft)]">
-                  {formatDate(dor.criado_em)}
-                </span>
-              </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="destructive"
-                disabled={excluirMutation.isPending}
-                onClick={() => {
-                  if (window.confirm(`Excluir definitivamente "${dor.titulo}"?`)) {
-                    excluirMutation.mutate(dor.id);
-                  }
-                }}
-              >
-                <Trash2 className="size-4" />
-                Excluir
-              </Button>
-            </div>
-            <p className="font-medium text-[var(--ink)]">{dor.titulo}</p>
-            <p className="text-sm leading-6 text-[var(--ink-soft)]">{dor.descricao}</p>
-          </CardContent>
-        </Card>
+        <DorAdminCard
+          key={dor.id}
+          categorias={categorias}
+          dor={dor}
+          deleting={excluirMutation.isPending}
+          onDelete={() => excluirMutation.mutate(dor.id)}
+        />
       ))}
     </div>
+  );
+}
+
+function DorAdminCard({
+  categorias,
+  deleting,
+  dor,
+  onDelete,
+}: {
+  categorias: { id: string; nome: string }[];
+  deleting: boolean;
+  dor: Awaited<ReturnType<typeof listarDoresAdmin>>[number];
+  onDelete: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [titulo, setTitulo] = useState(dor.titulo);
+  const [descricao, setDescricao] = useState(dor.descricao);
+  const [categoriaId, setCategoriaId] = useState(dor.categoria_id);
+  const [empresaContexto, setEmpresaContexto] = useState(dor.empresa_contexto ?? "");
+  const [status, setStatus] = useState(dor.status);
+  const [motivo, setMotivo] = useState(dor.motivo_rejeicao ?? "");
+
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      atualizarDorAdmin({
+        id: dor.id,
+        titulo,
+        descricao,
+        categoriaId,
+        empresaContexto,
+        status,
+        motivoRejeicao: motivo,
+      }),
+    onSuccess: async () => {
+      toast.success("Dor atualizada");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-dores"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-pendentes"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-categorias"] }),
+        queryClient.invalidateQueries({ queryKey: ["feed"] }),
+      ]);
+    },
+    onError: (error) => toast.error(readableError(error)),
+  });
+
+  const busy = saveMutation.isPending || deleting;
+
+  return (
+    <Card className="signal-card bg-[var(--surface-card)]">
+      <CardContent className="grid gap-4 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={dor.status} />
+            <Badge className="chip-lilac rounded-full border-0 font-data">
+              {dor.categorias?.nome ?? "Sem categoria"}
+            </Badge>
+            <span className="font-data text-xs text-[var(--ink-soft)]">
+              {formatDate(dor.criado_em)}
+            </span>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="destructive"
+            disabled={busy}
+            onClick={() => {
+              if (window.confirm(`Excluir definitivamente "${dor.titulo}"?`)) onDelete();
+            }}
+          >
+            <Trash2 className="size-4" />
+            Excluir
+          </Button>
+        </div>
+        <Field label="Título">
+          <Input value={titulo} onChange={(event) => setTitulo(event.target.value)} />
+        </Field>
+        <Field label="Descrição">
+          <Textarea
+            rows={5}
+            value={descricao}
+            onChange={(event) => setDescricao(event.target.value)}
+          />
+        </Field>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Field label="Categoria">
+            <Select
+              ariaLabel="Categoria"
+              value={categoriaId}
+              onChange={setCategoriaId}
+              options={categorias.map((categoria) => ({
+                value: categoria.id,
+                label: categoria.nome,
+              }))}
+            />
+          </Field>
+          <Field label="Status">
+            <Select
+              ariaLabel="Status"
+              value={status}
+              onChange={(value) => setStatus(value as typeof status)}
+              options={[
+                { value: "pendente", label: "Pendente" },
+                { value: "aprovada", label: "Aprovada" },
+                { value: "rejeitada", label: "Rejeitada" },
+              ]}
+            />
+          </Field>
+          <Field label="Empresa ou contexto">
+            <Input
+              value={empresaContexto}
+              onChange={(event) => setEmpresaContexto(event.target.value)}
+            />
+          </Field>
+        </div>
+        {status === "rejeitada" ? (
+          <Field label="Motivo de rejeição">
+            <Input value={motivo} onChange={(event) => setMotivo(event.target.value)} />
+          </Field>
+        ) : null}
+        <Button type="button" disabled={busy} onClick={() => saveMutation.mutate()}>
+          {saveMutation.isPending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <SlidersHorizontal className="size-4" />
+          )}
+          Salvar ajustes
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1238,20 +1359,204 @@ function UsuariosAdmin({
 }
 
 function CategoriasAdmin({ categorias }: { categorias: { id: string; nome: string }[] }) {
+  const queryClient = useQueryClient();
+  const [nome, setNome] = useState("");
+  const categoriasQuery = useQuery({
+    queryKey: ["admin-categorias"],
+    queryFn: listarCategoriasAdmin,
+  });
+
+  const refreshCategorias = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["categorias"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin-categorias"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin-dores"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin-pendentes"] }),
+      queryClient.invalidateQueries({ queryKey: ["feed"] }),
+    ]);
+  };
+
+  const createMutation = useMutation({
+    mutationFn: () => criarCategoria(nome),
+    onSuccess: async () => {
+      toast.success("Categoria criada");
+      setNome("");
+      await refreshCategorias();
+    },
+    onError: (error) => toast.error(readableError(error)),
+  });
+
+  if (categoriasQuery.isLoading) return <LoadingRows />;
+  if (categoriasQuery.error) return <ErrorBox error={categoriasQuery.error} />;
+
+  const categoriasAdmin = categoriasQuery.data ?? [];
+
+  return (
+    <div className="grid gap-4">
+      <Card className="signal-card bg-[var(--surface-card)]">
+        <CardContent className="p-5">
+          <form
+            className="grid gap-3 md:grid-cols-[1fr_auto]"
+            onSubmit={(event) => {
+              event.preventDefault();
+              createMutation.mutate();
+            }}
+          >
+            <Field label="Nova categoria">
+              <Input value={nome} onChange={(event) => setNome(event.target.value)} required />
+            </Field>
+            <Button
+              type="submit"
+              disabled={createMutation.isPending || nome.trim().length === 0}
+              className="self-end"
+            >
+              {createMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Plus className="size-4" />
+              )}
+              Adicionar
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {categoriasAdmin.map((categoria) => (
+        <CategoriaAdminCard
+          key={categoria.id}
+          categoria={categoria}
+          categorias={categorias}
+          onChanged={refreshCategorias}
+        />
+      ))}
+    </div>
+  );
+}
+
+function CategoriaAdminCard({
+  categoria,
+  categorias,
+  onChanged,
+}: {
+  categoria: Awaited<ReturnType<typeof listarCategoriasAdmin>>[number];
+  categorias: { id: string; nome: string }[];
+  onChanged: () => Promise<void>;
+}) {
+  const [nome, setNome] = useState(categoria.nome);
+  const [destinoId, setDestinoId] = useState("");
+  const destinos = categorias.filter((item) => item.id !== categoria.id);
+
+  useEffect(() => {
+    setNome(categoria.nome);
+  }, [categoria.nome]);
+
+  useEffect(() => {
+    if (!destinoId && destinos[0]) setDestinoId(destinos[0].id);
+  }, [destinoId, destinos]);
+
+  const updateMutation = useMutation({
+    mutationFn: () => atualizarCategoria(categoria.id, nome),
+    onSuccess: async () => {
+      toast.success("Categoria atualizada");
+      await onChanged();
+    },
+    onError: (error) => toast.error(readableError(error)),
+  });
+
+  const moveMutation = useMutation({
+    mutationFn: () => moverDoresDeCategoria(categoria.id, destinoId),
+    onSuccess: async () => {
+      toast.success("Dores movidas");
+      await onChanged();
+    },
+    onError: (error) => toast.error(readableError(error)),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => excluirCategoria(categoria.id),
+    onSuccess: async () => {
+      toast.success("Categoria excluída");
+      await onChanged();
+    },
+    onError: (error) => toast.error(readableError(error)),
+  });
+
+  const busy = updateMutation.isPending || moveMutation.isPending || deleteMutation.isPending;
+  const hasDores = categoria.dores_count > 0;
+
   return (
     <Card className="signal-card bg-[var(--surface-card)]">
-      <CardContent className="grid gap-3 p-5">
-        <div className="flex flex-wrap gap-2">
-          {categorias.map((categoria) => (
-            <Badge key={categoria.id} className="chip-lilac rounded-full border-0 font-data">
-              {categoria.nome}
-            </Badge>
-          ))}
+      <CardContent className="grid gap-4 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Badge className="chip-lilac rounded-full border-0 font-data">{categoria.nome}</Badge>
+          <span className="font-data text-xs text-[var(--ink-soft)]">
+            {categoria.dores_count} dores
+          </span>
         </div>
-        <p className="text-sm text-[var(--ink-soft)]">
-          O MVP já inclui gerenciamento seguro no banco. A edição visual de categorias fica limitada
-          nesta primeira versão para evitar expandir escopo além da curadoria essencial.
-        </p>
+
+        <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+          <Field label="Nome">
+            <Input value={nome} onChange={(event) => setNome(event.target.value)} />
+          </Field>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy || nome.trim().length === 0 || nome.trim() === categoria.nome}
+            onClick={() => updateMutation.mutate()}
+            className="self-end"
+          >
+            {updateMutation.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <SlidersHorizontal className="size-4" />
+            )}
+            Renomear
+          </Button>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+          <Field label="Mover dores para">
+            <Select
+              ariaLabel="Mover dores para"
+              value={destinoId}
+              onChange={setDestinoId}
+              options={destinos.map((item) => ({ value: item.id, label: item.nome }))}
+            />
+          </Field>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy || !hasDores || !destinoId}
+            onClick={() => moveMutation.mutate()}
+            className="self-end"
+          >
+            {moveMutation.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <SlidersHorizontal className="size-4" />
+            )}
+            Mover dores
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={busy || hasDores}
+            title={hasDores ? "Mova as dores antes de excluir" : undefined}
+            onClick={() => {
+              if (window.confirm(`Excluir categoria "${categoria.nome}"?`)) {
+                deleteMutation.mutate();
+              }
+            }}
+            className="self-end"
+          >
+            {deleteMutation.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Trash2 className="size-4" />
+            )}
+            Excluir
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
