@@ -22,3 +22,18 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## Supabase
+
+The MVP uses Supabase Auth and Postgres RLS. Create a Supabase project, copy
+`.env.example` to `.env.local`, fill `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_ANON_KEY`, then apply the SQL migration in
+`supabase/migrations`.
+
+After the first admin account signs up, promote it directly in Supabase SQL:
+
+```sql
+update public.perfis
+set role = 'admin'
+where email = 'email-do-admin@exemplo.com';
+```
