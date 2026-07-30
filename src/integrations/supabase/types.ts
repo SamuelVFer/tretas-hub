@@ -194,8 +194,7 @@ export type Database = {
       }
     }
     Functions: {
-      is_admin: { Args: { user_id?: string }; Returns: boolean }
-      is_banned: { Args: { user_id?: string }; Returns: boolean }
+      [_ in never]: never
     }
     Enums: {
       dor_status: "pendente" | "aprovada" | "rejeitada"
