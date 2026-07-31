@@ -1,0 +1,1 @@
+ALTER VIEW public.dores_publicas SET (security_invoker = true);
