@@ -1104,8 +1104,9 @@ function DoresAdmin({ categorias }: { categorias: { id: string; nome: string }[]
           key={dor.id}
           categorias={categorias}
           dor={dor}
-          deleting={excluirMutation.isPending}
+          deleting={excluirMutation.isPending || restaurarMutation.isPending}
           onDelete={() => excluirMutation.mutate(dor.id)}
+          onRestore={() => restaurarMutation.mutate(dor.id)}
         />
       ))}
     </div>
@@ -1117,12 +1118,15 @@ function DorAdminCard({
   deleting,
   dor,
   onDelete,
+  onRestore,
 }: {
   categorias: { id: string; nome: string }[];
   deleting: boolean;
   dor: Awaited<ReturnType<typeof listarDoresAdmin>>[number];
   onDelete: () => void;
+  onRestore: () => void;
 }) {
+
   const queryClient = useQueryClient();
   const [titulo, setTitulo] = useState(dor.titulo);
   const [descricao, setDescricao] = useState(dor.descricao);
