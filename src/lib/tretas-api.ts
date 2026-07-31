@@ -1,7 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
-import { createServerFn } from "@tanstack/react-start";
 
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Tables } from "@/integrations/supabase/types";
 
 import type { Categoria, Dor, DorPublica, Perfil } from "./database.types";
@@ -20,22 +18,6 @@ export type NovaDorInput = {
   categoriaId: string;
   empresaContexto?: string;
 };
-
-const criarDorPublicaServer = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((input: NovaDorInput) => input)
-  .handler(async ({ data: input, context }) => {
-    const { error } = await context.supabase.from("dores").insert({
-      titulo: input.titulo.trim(),
-      descricao: input.descricao.trim(),
-      categoria_id: input.categoriaId,
-      empresa_contexto: input.empresaContexto?.trim() || null,
-      status: "pendente",
-      autor_id: context.userId,
-    });
-
-    if (error) throw error;
-  });
 
 export type EditarDorInput = {
   id: string;
