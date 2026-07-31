@@ -1074,8 +1074,10 @@ function DoresAdmin({ categorias }: { categorias: { id: string; nome: string }[]
               { value: "aprovada", label: "Aprovadas" },
               { value: "pendente", label: "Pendentes" },
               { value: "rejeitada", label: "Rejeitadas" },
-              { value: "todas", label: "Todas" },
+              { value: "todas", label: "Todas (ativas)" },
+              { value: "arquivadas", label: "Arquivadas" },
             ]}
+
           />
         </Field>
         <Field label="Categoria">
