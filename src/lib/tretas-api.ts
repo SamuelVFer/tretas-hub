@@ -1,6 +1,7 @@
 import type { Session } from "@supabase/supabase-js";
 import { createServerFn } from "@tanstack/react-start";
 
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Tables } from "@/integrations/supabase/types";
 
 import type { Categoria, Dor, DorPublica, Perfil } from "./database.types";
