@@ -267,8 +267,10 @@ function Index() {
           <MinhasDoresPanel
             dores={minhasDoresQuery.data ?? []}
             isLoading={minhasDoresQuery.isLoading}
+            usuarioId={session.user.id}
           />
         ) : null}
+
 
         {view === "admin" && isAdmin ? <AdminPanel categorias={categorias} /> : null}
       </section>
