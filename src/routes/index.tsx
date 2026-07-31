@@ -1172,20 +1172,34 @@ function DorAdminCard({
             <span className="font-data text-xs text-[var(--ink-soft)]">
               {formatDate(dor.criado_em)}
             </span>
+            {dor.arquivada_em ? (
+              <Badge className="chip-soft rounded-full border-0 font-data">
+                Arquivada em {formatDate(dor.arquivada_em)}
+              </Badge>
+            ) : null}
           </div>
-          <Button
-            type="button"
-            size="sm"
-            variant="destructive"
-            disabled={busy}
-            onClick={() => {
-              if (window.confirm(`Excluir definitivamente "${dor.titulo}"?`)) onDelete();
-            }}
-          >
-            <Trash2 className="size-4" />
-            Excluir
-          </Button>
+          {dor.arquivada_em ? (
+            <Button type="button" size="sm" variant="outline" disabled={busy} onClick={onRestore}>
+              <RotateCcw className="size-4" />
+              Restaurar
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              disabled={busy}
+              onClick={() => {
+                if (window.confirm(`Arquivar "${dor.titulo}"? Nada é apagado do histórico.`))
+                  onDelete();
+              }}
+            >
+              <Trash2 className="size-4" />
+              Arquivar
+            </Button>
+          )}
         </div>
+
         <Field label="Título">
           <Input value={titulo} onChange={(event) => setTitulo(event.target.value)} />
         </Field>
