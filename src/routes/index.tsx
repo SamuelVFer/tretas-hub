@@ -1024,26 +1024,43 @@ function AdminPanel({ categorias }: { categorias: { id: string; nome: string }[]
 
 function DoresAdmin({ categorias }: { categorias: { id: string; nome: string }[] }) {
   const queryClient = useQueryClient();
-  const [filtro, setFiltro] = useState<"todas" | "pendente" | "aprovada" | "rejeitada">("aprovada");
+  const [filtro, setFiltro] = useState<
+    "todas" | "pendente" | "aprovada" | "rejeitada" | "arquivadas"
+  >("aprovada");
   const [categoriaFiltro, setCategoriaFiltro] = useState("todas");
   const doresQuery = useQuery({
     queryKey: ["admin-dores", filtro, categoriaFiltro],
     queryFn: () => listarDoresAdmin(filtro, categoriaFiltro),
   });
 
+  const invalidar = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["admin-dores"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin-pendentes"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin-auditoria"] }),
+      queryClient.invalidateQueries({ queryKey: ["minhas-dores"] }),
+      queryClient.invalidateQueries({ queryKey: ["feed"] }),
+    ]);
+  };
+
   const excluirMutation = useMutation({
-    mutationFn: excluirDor,
+    mutationFn: (id: string) => arquivarDor(id),
     onSuccess: async () => {
-      toast.success("Dor excluída");
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["admin-dores"] }),
-        queryClient.invalidateQueries({ queryKey: ["admin-pendentes"] }),
-        queryClient.invalidateQueries({ queryKey: ["admin-auditoria"] }),
-        queryClient.invalidateQueries({ queryKey: ["feed"] }),
-      ]);
+      toast.success("Dor arquivada (guardada no histórico)");
+      await invalidar();
     },
     onError: (error) => toast.error(readableError(error)),
   });
+
+  const restaurarMutation = useMutation({
+    mutationFn: (id: string) => restaurarDor(id),
+    onSuccess: async () => {
+      toast.success("Dor restaurada");
+      await invalidar();
+    },
+    onError: (error) => toast.error(readableError(error)),
+  });
+
 
   return (
     <div className="grid gap-4">
