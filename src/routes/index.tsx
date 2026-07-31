@@ -12,7 +12,9 @@ import {
   Loader2,
   LogOut,
   Plus,
+  RotateCcw,
   ScrollText,
+
   Shield,
   SlidersHorizontal,
   Sparkles,
@@ -33,13 +35,13 @@ import type { Dor, Perfil } from "@/lib/database.types";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import {
   aprovarDor,
+  arquivarDor,
   atualizarCategoria,
   atualizarDorAdmin,
   atualizarUsuarioAdmin,
   criarCategoria,
   criarDor,
   excluirCategoria,
-  excluirDor,
   getAuthState,
   listarAuditoria,
   listarCategorias,
@@ -47,6 +49,8 @@ import {
   listarDoresAdmin,
   listarFeed,
   listarMeusInteresses,
+  listarMeusInteressesDetalhados,
+  listarMinhaAtividade,
   listarMinhasDores,
   listarPendentesAdmin,
   listarUsuariosAdmin,
@@ -55,9 +59,11 @@ import {
   registrarLogin,
   rejeitarDor,
   removerInteresse,
+  restaurarDor,
   signIn,
   signOut,
 } from "@/lib/tretas-api";
+
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
@@ -261,8 +267,10 @@ function Index() {
           <MinhasDoresPanel
             dores={minhasDoresQuery.data ?? []}
             isLoading={minhasDoresQuery.isLoading}
+            usuarioId={session.user.id}
           />
         ) : null}
+
 
         {view === "admin" && isAdmin ? <AdminPanel categorias={categorias} /> : null}
       </section>
@@ -904,37 +912,132 @@ function EnviarDorPanel({ categorias }: { categorias: { id: string; nome: string
   );
 }
 
-function MinhasDoresPanel({ dores, isLoading }: { dores: Dor[]; isLoading: boolean }) {
+function MinhasDoresPanel({
+  dores,
+  isLoading,
+  usuarioId,
+}: {
+  dores: Dor[];
+  isLoading: boolean;
+  usuarioId?: string;
+}) {
+  const interessesQuery = useQuery({
+    queryKey: ["meus-interesses-detalhados", usuarioId],
+    queryFn: () => listarMeusInteressesDetalhados(usuarioId),
+    enabled: Boolean(usuarioId),
+  });
+
+  const atividadeQuery = useQuery({
+    queryKey: ["minha-atividade", usuarioId],
+    queryFn: () => listarMinhaAtividade(usuarioId),
+    enabled: Boolean(usuarioId),
+  });
+
   if (isLoading) return <LoadingRows />;
 
+  const interesses = interessesQuery.data ?? [];
+  const atividade = atividadeQuery.data ?? [];
+
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-6">
       <div>
-        <h2 className="font-display text-3xl tracking-normal text-[var(--ink)]">Minhas dores</h2>
-        <p className="text-sm text-[var(--ink-soft)]">Acompanhe o status do que você enviou.</p>
+        <h2 className="font-display text-3xl tracking-normal text-[var(--ink)]">Minha conta</h2>
+        <p className="text-sm text-[var(--ink-soft)]">
+          Histórico completo do seu perfil: tudo que você enviou, seus interesses e sua atividade.
+          Nada é apagado — itens removidos ficam arquivados.
+        </p>
       </div>
-      {dores.length === 0 ? (
-        <EmptyState title="Nada enviado ainda" text="Envie a primeira dor para curadoria." />
-      ) : null}
-      {dores.map((dor) => (
-        <Card key={dor.id} className="signal-card border bg-[var(--surface-card)]">
-          <CardContent className="grid gap-3 p-5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="font-semibold tracking-normal text-[var(--ink)]">{dor.titulo}</h3>
-              <StatusBadge status={dor.status} />
-            </div>
-            <p className="text-sm leading-6 text-[var(--ink-soft)]">{dor.descricao}</p>
-            {dor.motivo_rejeicao ? (
-              <p className="rounded-lg bg-[var(--status-rejeitada-tint)] p-3 text-sm text-[var(--status-rejeitada)]">
-                Motivo da rejeição: {dor.motivo_rejeicao}
-              </p>
-            ) : null}
-          </CardContent>
-        </Card>
-      ))}
+
+      <section className="grid gap-4">
+        <h3 className="font-display text-xl tracking-normal text-[var(--ink)]">
+          Minhas dores ({dores.length})
+        </h3>
+        {dores.length === 0 ? (
+          <EmptyState title="Nada enviado ainda" text="Envie a primeira dor para curadoria." />
+        ) : null}
+        {dores.map((dor) => (
+          <Card key={dor.id} className="signal-card border bg-[var(--surface-card)]">
+            <CardContent className="grid gap-3 p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="font-semibold tracking-normal text-[var(--ink)]">{dor.titulo}</h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  {dor.arquivada_em ? (
+                    <Badge className="chip-soft rounded-full border-0 font-data">Arquivada</Badge>
+                  ) : null}
+                  <StatusBadge status={dor.status} />
+                </div>
+              </div>
+              <span className="font-data text-xs text-[var(--ink-soft)]">
+                Enviada em {formatDate(dor.criado_em)}
+              </span>
+              <p className="text-sm leading-6 text-[var(--ink-soft)]">{dor.descricao}</p>
+              {dor.motivo_rejeicao ? (
+                <p className="rounded-lg bg-[var(--status-rejeitada-tint)] p-3 text-sm text-[var(--status-rejeitada)]">
+                  Motivo da rejeição: {dor.motivo_rejeicao}
+                </p>
+              ) : null}
+            </CardContent>
+          </Card>
+        ))}
+      </section>
+
+      <section className="grid gap-3">
+        <h3 className="font-display text-xl tracking-normal text-[var(--ink)]">
+          Meus interesses ({interesses.length})
+        </h3>
+        {interesses.length === 0 ? (
+          <EmptyState title="Sem interesses" text="Marque interesse nas dores do feed." />
+        ) : (
+          <Card className="signal-card border bg-[var(--surface-card)]">
+            <CardContent className="grid gap-2 p-5">
+              {interesses.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-hairline)] pb-2 last:border-0 last:pb-0"
+                >
+                  <span className="text-sm text-[var(--ink)]">
+                    {item.dores?.titulo ?? "Dor indisponível"}
+                  </span>
+                  <span className="font-data text-xs text-[var(--ink-soft)]">
+                    {formatDate(item.criado_em)}
+                  </span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+      </section>
+
+      <section className="grid gap-3">
+        <h3 className="font-display text-xl tracking-normal text-[var(--ink)]">
+          Minha atividade ({atividade.length})
+        </h3>
+        {atividade.length === 0 ? (
+          <EmptyState title="Sem registros" text="Suas ações aparecerão aqui com data e hora." />
+        ) : (
+          <Card className="signal-card border bg-[var(--surface-card)]">
+            <CardContent className="grid gap-2 p-5">
+              {atividade.map((registro) => (
+                <div
+                  key={registro.id}
+                  className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-hairline)] pb-2 last:border-0 last:pb-0"
+                >
+                  <span className="font-data text-xs uppercase text-[var(--ink)]">
+                    {registro.acao} · {registro.tabela}
+                  </span>
+                  <span className="font-data text-xs text-[var(--ink-soft)]">
+                    {formatDate(registro.criado_em)}
+                  </span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+      </section>
     </div>
   );
 }
+
 
 function AdminPanel({ categorias }: { categorias: { id: string; nome: string }[] }) {
   const [tab, setTab] = useState<"curadoria" | "dores" | "usuarios" | "categorias" | "auditoria">(
@@ -1020,26 +1123,43 @@ function AdminPanel({ categorias }: { categorias: { id: string; nome: string }[]
 
 function DoresAdmin({ categorias }: { categorias: { id: string; nome: string }[] }) {
   const queryClient = useQueryClient();
-  const [filtro, setFiltro] = useState<"todas" | "pendente" | "aprovada" | "rejeitada">("aprovada");
+  const [filtro, setFiltro] = useState<
+    "todas" | "pendente" | "aprovada" | "rejeitada" | "arquivadas"
+  >("aprovada");
   const [categoriaFiltro, setCategoriaFiltro] = useState("todas");
   const doresQuery = useQuery({
     queryKey: ["admin-dores", filtro, categoriaFiltro],
     queryFn: () => listarDoresAdmin(filtro, categoriaFiltro),
   });
 
+  const invalidar = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["admin-dores"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin-pendentes"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin-auditoria"] }),
+      queryClient.invalidateQueries({ queryKey: ["minhas-dores"] }),
+      queryClient.invalidateQueries({ queryKey: ["feed"] }),
+    ]);
+  };
+
   const excluirMutation = useMutation({
-    mutationFn: excluirDor,
+    mutationFn: (id: string) => arquivarDor(id),
     onSuccess: async () => {
-      toast.success("Dor excluída");
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["admin-dores"] }),
-        queryClient.invalidateQueries({ queryKey: ["admin-pendentes"] }),
-        queryClient.invalidateQueries({ queryKey: ["admin-auditoria"] }),
-        queryClient.invalidateQueries({ queryKey: ["feed"] }),
-      ]);
+      toast.success("Dor arquivada (guardada no histórico)");
+      await invalidar();
     },
     onError: (error) => toast.error(readableError(error)),
   });
+
+  const restaurarMutation = useMutation({
+    mutationFn: (id: string) => restaurarDor(id),
+    onSuccess: async () => {
+      toast.success("Dor restaurada");
+      await invalidar();
+    },
+    onError: (error) => toast.error(readableError(error)),
+  });
+
 
   return (
     <div className="grid gap-4">
@@ -1053,8 +1173,10 @@ function DoresAdmin({ categorias }: { categorias: { id: string; nome: string }[]
               { value: "aprovada", label: "Aprovadas" },
               { value: "pendente", label: "Pendentes" },
               { value: "rejeitada", label: "Rejeitadas" },
-              { value: "todas", label: "Todas" },
+              { value: "todas", label: "Todas (ativas)" },
+              { value: "arquivadas", label: "Arquivadas" },
             ]}
+
           />
         </Field>
         <Field label="Categoria">
@@ -1081,8 +1203,9 @@ function DoresAdmin({ categorias }: { categorias: { id: string; nome: string }[]
           key={dor.id}
           categorias={categorias}
           dor={dor}
-          deleting={excluirMutation.isPending}
+          deleting={excluirMutation.isPending || restaurarMutation.isPending}
           onDelete={() => excluirMutation.mutate(dor.id)}
+          onRestore={() => restaurarMutation.mutate(dor.id)}
         />
       ))}
     </div>
@@ -1094,12 +1217,15 @@ function DorAdminCard({
   deleting,
   dor,
   onDelete,
+  onRestore,
 }: {
   categorias: { id: string; nome: string }[];
   deleting: boolean;
   dor: Awaited<ReturnType<typeof listarDoresAdmin>>[number];
   onDelete: () => void;
+  onRestore: () => void;
 }) {
+
   const queryClient = useQueryClient();
   const [titulo, setTitulo] = useState(dor.titulo);
   const [descricao, setDescricao] = useState(dor.descricao);
@@ -1145,20 +1271,34 @@ function DorAdminCard({
             <span className="font-data text-xs text-[var(--ink-soft)]">
               {formatDate(dor.criado_em)}
             </span>
+            {dor.arquivada_em ? (
+              <Badge className="chip-soft rounded-full border-0 font-data">
+                Arquivada em {formatDate(dor.arquivada_em)}
+              </Badge>
+            ) : null}
           </div>
-          <Button
-            type="button"
-            size="sm"
-            variant="destructive"
-            disabled={busy}
-            onClick={() => {
-              if (window.confirm(`Excluir definitivamente "${dor.titulo}"?`)) onDelete();
-            }}
-          >
-            <Trash2 className="size-4" />
-            Excluir
-          </Button>
+          {dor.arquivada_em ? (
+            <Button type="button" size="sm" variant="outline" disabled={busy} onClick={onRestore}>
+              <RotateCcw className="size-4" />
+              Restaurar
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              disabled={busy}
+              onClick={() => {
+                if (window.confirm(`Arquivar "${dor.titulo}"? Nada é apagado do histórico.`))
+                  onDelete();
+              }}
+            >
+              <Trash2 className="size-4" />
+              Arquivar
+            </Button>
+          )}
         </div>
+
         <Field label="Título">
           <Input value={titulo} onChange={(event) => setTitulo(event.target.value)} />
         </Field>

@@ -290,11 +290,18 @@ export async function listarAuditoria(): Promise<RegistroAuditoria[]> {
 }
 
 export async function listarDoresAdmin(
-  status: "todas" | "pendente" | "aprovada" | "rejeitada" = "todas",
+  status: "todas" | "pendente" | "aprovada" | "rejeitada" | "arquivadas" = "todas",
   categoriaId = "todas",
 ): Promise<(Dor & { categorias: { nome: string } | null })[]> {
   let query = supabase.from("dores").select("*, categorias(nome)");
-  if (status !== "todas") query = query.eq("status", status);
+
+  if (status === "arquivadas") {
+    query = query.not("arquivada_em", "is", null);
+  } else {
+    query = query.is("arquivada_em", null);
+    if (status !== "todas") query = query.eq("status", status);
+  }
+
   if (categoriaId !== "todas") query = query.eq("categoria_id", categoriaId);
 
   const { data, error } = await query.order("criado_em", { ascending: false });
@@ -302,7 +309,66 @@ export async function listarDoresAdmin(
   return data ?? [];
 }
 
-export async function excluirDor(id: string) {
-  const { error } = await supabase.from("dores").delete().eq("id", id);
+/** Nada é apagado: a dor é arquivada e continua no histórico e na auditoria. */
+export async function arquivarDor(id: string) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const { error } = await supabase
+    .from("dores")
+    .update({
+      arquivada_em: new Date().toISOString(),
+      arquivado_por: session?.user.id ?? null,
+    })
+    .eq("id", id);
+
   if (error) throw error;
 }
+
+export async function restaurarDor(id: string) {
+  const { error } = await supabase
+    .from("dores")
+    .update({ arquivada_em: null, arquivado_por: null })
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
+export type InteresseDetalhado = Tables<"interesses"> & {
+  dores: { id: string; titulo: string; status: DorStatus; arquivada_em: string | null } | null;
+};
+
+export async function listarMeusInteressesDetalhados(
+  usuarioId?: string,
+): Promise<InteresseDetalhado[]> {
+  if (!usuarioId) return [];
+
+  const { data, error } = await supabase
+    .from("interesses")
+    .select("*, dores(id, titulo, status, arquivada_em)")
+    .eq("usuario_id", usuarioId)
+    .order("criado_em", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as InteresseDetalhado[];
+}
+
+/** Histórico de auditoria do próprio usuário (admins veem tudo pelo painel). */
+export async function listarMinhaAtividade(usuarioId?: string): Promise<RegistroAuditoria[]> {
+  if (!usuarioId) return [];
+
+  const { data, error } = await supabase
+    .from("registros_auditoria")
+    .select("*")
+    .eq("ator_id", usuarioId)
+    .order("criado_em", { ascending: false })
+    .limit(100);
+
+  if (error) {
+    console.warn("Sem acesso ao histórico de atividade", error.message);
+    return [];
+  }
+  return data ?? [];
+}
+

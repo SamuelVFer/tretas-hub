@@ -35,6 +35,8 @@ export type Database = {
       dores: {
         Row: {
           aprovado_em: string | null
+          arquivada_em: string | null
+          arquivado_por: string | null
           atualizado_em: string
           autor_id: string | null
           categoria_id: string
@@ -48,6 +50,8 @@ export type Database = {
         }
         Insert: {
           aprovado_em?: string | null
+          arquivada_em?: string | null
+          arquivado_por?: string | null
           atualizado_em?: string
           autor_id?: string | null
           categoria_id: string
@@ -61,6 +65,8 @@ export type Database = {
         }
         Update: {
           aprovado_em?: string | null
+          arquivada_em?: string | null
+          arquivado_por?: string | null
           atualizado_em?: string
           autor_id?: string | null
           categoria_id?: string
