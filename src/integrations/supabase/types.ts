@@ -36,7 +36,7 @@ export type Database = {
         Row: {
           aprovado_em: string | null
           atualizado_em: string
-          autor_id: string
+          autor_id: string | null
           categoria_id: string
           criado_em: string
           descricao: string
@@ -49,7 +49,7 @@ export type Database = {
         Insert: {
           aprovado_em?: string | null
           atualizado_em?: string
-          autor_id: string
+          autor_id?: string | null
           categoria_id: string
           criado_em?: string
           descricao: string
@@ -62,7 +62,7 @@ export type Database = {
         Update: {
           aprovado_em?: string | null
           atualizado_em?: string
-          autor_id?: string
+          autor_id?: string | null
           categoria_id?: string
           criado_em?: string
           descricao?: string

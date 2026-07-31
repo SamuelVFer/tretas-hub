@@ -157,9 +157,8 @@ export async function listarMeusInteresses(usuarioId?: string): Promise<Set<stri
 
 export async function criarDor(input: NovaDorInput) {
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Faça login para enviar uma dor.");
+    data: { session },
+  } = await supabase.auth.getSession();
 
   const { error } = await supabase.from("dores").insert({
     titulo: input.titulo.trim(),
@@ -167,7 +166,7 @@ export async function criarDor(input: NovaDorInput) {
     categoria_id: input.categoriaId,
     empresa_contexto: input.empresaContexto?.trim() || null,
     status: "pendente",
-    autor_id: user.id,
+    autor_id: session?.user.id ?? null,
   });
 
   if (error) throw error;
