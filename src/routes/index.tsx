@@ -33,13 +33,13 @@ import type { Dor, Perfil } from "@/lib/database.types";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import {
   aprovarDor,
+  arquivarDor,
   atualizarCategoria,
   atualizarDorAdmin,
   atualizarUsuarioAdmin,
   criarCategoria,
   criarDor,
   excluirCategoria,
-  excluirDor,
   getAuthState,
   listarAuditoria,
   listarCategorias,
@@ -47,6 +47,8 @@ import {
   listarDoresAdmin,
   listarFeed,
   listarMeusInteresses,
+  listarMeusInteressesDetalhados,
+  listarMinhaAtividade,
   listarMinhasDores,
   listarPendentesAdmin,
   listarUsuariosAdmin,
@@ -55,9 +57,11 @@ import {
   registrarLogin,
   rejeitarDor,
   removerInteresse,
+  restaurarDor,
   signIn,
   signOut,
 } from "@/lib/tretas-api";
+
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
